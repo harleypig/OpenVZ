@@ -7,6 +7,12 @@ package OpenVZ::vzctl;
 
 =head1 SYNOPSIS
 
+  use OpenVZ::vzctl;
+
+  #XXX: need to add more examples
+
+=head1 DESCRIPTION
+
 This program is a simple (or not so simple in some cases) wrapper around the
 'vzctl' program.  It will do some basic verification on options and parameters
 but it will not (currently) do sanity checks on the values.
@@ -209,16 +215,6 @@ sub vzctl {
 
 }
 
-my $config = {
-
-  exports => [ ( keys %vzctl ) => \&_generate_subcommands ],
-  groups  => {},
-  collectors => [],
-
-};
-
-Sub::Exporter::setup_exporter( $config );
-
 =function subcommand_specs
 
 C<subcommand_specs> expects a list.  The first element will be checked against
@@ -290,7 +286,7 @@ sub subcommand_specs {
     }
   }
 
-  # build custom specification hash if any args left
+  # build custom specification hash if any args are left
 
   for my $spec ( @args ) {
 
@@ -392,5 +388,18 @@ sub _generate_vzctl_subcommand {
 
   }
 }
+
+############################################################################
+# Setup exporter
+
+my $config = {
+
+  exports => [ qw( execute vzctl subcommand_specs ), ( keys %vzctl ) => \&_generate_subcommands ],
+  groups  => {},
+  collectors => [],
+
+};
+
+Sub::Exporter::setup_exporter( $config );
 
 1;
