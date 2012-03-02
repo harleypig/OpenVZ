@@ -1,6 +1,6 @@
 package OpenVZ::vzctl;
 
-# ABSTRACT: Call OpenVZ vzctl utility from your program
+# ABSTRACT: Call OpenVZ vzctl command from your program
 
 #XXX: Do we need to load and parse the VZ system config file?
 #XXX: Need to abstract out the common code into a top level OpenVZ module.
@@ -27,13 +27,19 @@ use Carp;
 use Config::NameValue;
 use File::Which;
 use IPC::Run3::Simple;
-use Params::Validate qw( :types );
+use Params::Validate qw( :all );
 use Regexp::Common qw( URI net );
 use Sub::Exporter;
 
 our %global;
 
 # VERSION
+
+############################################################################
+# Base structure describing the subcommands and their arguments.
+
+# Every subcommand requires ctid and has the optional flag.
+# [parm] will make the parm optional in C<subcommand_specs>.
 
 my %vzctl = (
 
@@ -47,17 +53,18 @@ my %vzctl = (
     stop      => [],
     umount    => [],
 
+    start     => [qw( [force] [wait] )],
+
 #    exec => <ctid> <command> [arg ...]
 #    exec2 => <ctid> <command> [arg ...]
-#
+#    runscript => <ctid> <script>
+
 #    chkpnt => <ctid> [--dumpfile <name>]
 #    restore => <ctid> [--dumpfile <name>]
-#
+
 #    create => <ctid> [--ostemplate <name>] [--config <name>] [--private <path>] [--root <path>] [--ipadd <addr>] | [--hostname <name>]
-#    start => <ctid> [--force] [--wait]
 #    enter => <ctid> [--exec <command> [arg ...]]
-#    runscript => <ctid> <script>
-#
+
 #    set => <ctid> [--save] [--force] [--setmode restart|ignore]
 #   [--ipadd <addr>] [--ipdel <addr>|all] [--hostname <name>]
 #   [--nameserver <addr>] [--searchdomain <name>]
@@ -81,10 +88,15 @@ my %vzctl = (
 
 my %validate = (
 
-  ctid    => { callback => { 'validate ctid' => \&_validate_ctid } },
-  flag    => { regex    => qr/^quiet|verbose|version$/, optional => 1 },
+  ctid  => { callbacks => { 'validate ctid' => \&_validate_ctid } },
+  flag  => { regex     => qr/^quiet|verbose|version$/ },
+  force => { type      => UNDEF },
+  wait  => { type      => UNDEF },
 
 );
+
+############################################################################
+# Public functions
 
 #XXX: Should be extracted out into common module (OpenVZ.pm?)
 
@@ -100,7 +112,7 @@ This function is the workhorse of this package.  It expects the following
 parameters as a hashref
 
   command => program name to be called (e.g., vzctl) (STRING)
-  params  => parameters to be passed to the utility to be called (ARRAYREF)
+  params  => parameters to be passed to the command to be called (ARRAYREF)
 
 C<params> is optional.
 
@@ -112,10 +124,10 @@ passed on the command line.
 
 sub execute {
 
-  my %arg = validate( @_,
-    'command' => { callbacks => { 'find utility path' => \&_find_command } },
+  my %arg = validate( @_, {
+    'command' => { callbacks => { 'find command path' => \&_find_command } },
     'params'  => { type => ARRAYREF, optional => 1 },
-  );
+  });
 
   # XXX: Need to handle also the case of a hashref
   return run3([ $global{ path }{ $arg{ command } }, @{ $arg{ params } } ]);
@@ -251,6 +263,9 @@ would yield
 
   $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
 
+If a parameter is surrounded with square brackets ( [] ) the parameter is made
+optional.
+
 =cut
 
 sub subcommand_specs {
@@ -269,12 +284,14 @@ sub subcommand_specs {
 
     # then build predefined specification hash
 
-    my @specs = $vzctl{ +shift @args };
+    my @specs = @{ $vzctl{ +shift @args } };
 
-    unshift @specs, 'flag', 'ctid'; # Every subcommand has these two at
-                                    # a minimum.
+    # Every subcommand has these two at a minimum.
+    unshift @specs, '[flag]', 'ctid';
 
     for my $spec ( @specs ) {
+
+      my $optional = $spec =~ s/^\[(.*)\]$/$1/;
 
       croak "Unknown spec $spec"
         unless exists $validate{ $spec };
@@ -282,6 +299,9 @@ sub subcommand_specs {
       next if grep { /^-$spec$/ } @args;
 
       $spec_hash{ $spec } = $validate{ $spec };
+
+      $spec_hash{ $spec }{ optional } = 1
+        if $optional;
 
     }
   }
@@ -321,7 +341,7 @@ sub _find_command {
     if exists $global{ path }{ $pgm };
 
   $global{ path }{ $pgm } = which( $pgm )
-    or croak "Could not find $pgm in path";
+    or croak "Could not find $pgm in path ($ENV{PATH})";
 
   return 1;
 
@@ -334,17 +354,27 @@ sub _validate_ctid {
   #my ( $ctid, $params ) = @_;
   my $check_ctid = shift;
 
-  return 1
-    if ( exists $global{ ctid } && $global{ ctid } == $check_ctid )
-    || ( exists $global{ name } && $global{ name } eq $check_ctid );
+  { no warnings qw( numeric uninitialized );
+
+    return 1
+      if ( exists $global{ ctid } && $global{ ctid } == $check_ctid )
+      || ( exists $global{ name } && $global{ name } eq $check_ctid );
+  };
 
   # XXX: Need to modify this when vzlist is handled so we keep things
   # uncluttered.
 
+  $DB::single = 1;
+
   my ( $stdout, $stderr, $syserr ) = execute({
-    utility => 'vzlist',
+    command => 'vzlist',
     params  => [ '-Ho', 'ctid,name', $check_ctid ],
   });
+
+  croak 'vzlist did not execute'
+    if $syserr == -1;
+
+  $syserr >>= 8;
 
   croak "Invalid or unknown container ($check_ctid): $stderr"
     if $syserr == 1;
@@ -353,9 +383,7 @@ sub _validate_ctid {
   my ( $ctid, $name ) = split /\s+/, $stdout;
 
   $global{ ctid } = $ctid;
-
-  $global{ name } = $name
-    if $name ne '';
+  $global{ name } = $name;
 
   return 1;
 
@@ -364,7 +392,7 @@ sub _validate_ctid {
 # Generate the code for each of the subcommands
 # https://metacpan.org/module/Sub::Exporter#Export-Configuration
 
-sub _generate_vzctl_subcommand {
+sub _generate_subcommand {
 
   my ( $class, $name, $arg, $collection ) = @_;
   my $spec = subcommand_specs( $name );
@@ -378,7 +406,7 @@ sub _generate_vzctl_subcommand {
   sub {
 
     my %arg = validate_with(
-      params => @_,
+      params => \@_,
       spec   => $spec,
     );
 
@@ -392,9 +420,14 @@ sub _generate_vzctl_subcommand {
 ############################################################################
 # Setup exporter
 
+my @exports = qw( execute vzctl subcommand_specs );
+
+push @exports, ( $_ => \&_generate_subcommand )
+  for keys %vzctl;
+
 my $config = {
 
-  exports => [ qw( execute vzctl subcommand_specs ), ( keys %vzctl ) => \&_generate_subcommands ],
+  exports => \@exports,
   groups  => {},
   collectors => [],
 
