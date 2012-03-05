@@ -4,6 +4,8 @@ package OpenVZ::vzctl;
 
 #XXX: Do we need to load and parse the VZ system config file?
 #XXX: Need to abstract out the common code into a top level OpenVZ module.
+#XXX: Need to handle version specially, create a sub for it and remove it from
+#     the validate hash for 'flag'.
 
 =head1 SYNOPSIS
 
@@ -41,6 +43,11 @@ our %global;
 # Every subcommand requires ctid and has the optional flag.
 # [parm] will make the parm optional in C<subcommand_specs>.
 
+# subcommands like exec, exec2 and runscript run a command in the container.
+# It's not really feasible to check within the container for the validity of
+# a command or any arguments passed, so we'll assume the caller knows what
+# they're doing with those by using C<allow_extra>.
+
 my %vzctl = (
 
     destroy   => [],
@@ -54,16 +61,17 @@ my %vzctl = (
     umount    => [],
 
     start     => [qw( [force] [wait] )],
+    enter     => [qw( [exec] allow_extra )],
 
-#    exec => <ctid> <command> [arg ...]
-#    exec2 => <ctid> <command> [arg ...]
-#    runscript => <ctid> <script>
+    exec2     => [qw( allow_extra )],
+    exec      => [qw( allow_extra )],
+    runscript => [qw( allow_extra )],
 
-#    chkpnt => <ctid> [--dumpfile <name>]
-#    restore => <ctid> [--dumpfile <name>]
+    chkpnt    => [ '[create_dumpfile]' ],
+    restore   => [ '[restore_dumpfile]' ],
 
+    create    => [qw( [ostemplate] [config] [private] [root] [ipadd] [hostname] )],
 #    create => <ctid> [--ostemplate <name>] [--config <name>] [--private <path>] [--root <path>] [--ipadd <addr>] | [--hostname <name>]
-#    enter => <ctid> [--exec <command> [arg ...]]
 
 #    set => <ctid> [--save] [--force] [--setmode restart|ignore]
 #   [--ipadd <addr>] [--ipdel <addr>|all] [--hostname <name>]
@@ -88,12 +96,77 @@ my %vzctl = (
 
 my %validate = (
 
-  ctid  => { callbacks => { 'validate ctid' => \&_validate_ctid } },
-  flag  => { regex     => qr/^quiet|verbose|version$/ },
-  force => { type      => UNDEF },
-  wait  => { type      => UNDEF },
+  allow_extra => 1, # special case to handle parms we aren't going to check
+                    # (e.g., exec and friends). Leave it as an invalid entry
+                    # for validate_with so programmers will catch it before it
+                    # goes live.
+
+  ctid       => { callbacks => { 'validate ctid' => \&_validate_ctid } },
+  exec       => { type      => SCALAR },
+  flag       => { regex     => qr/^quiet|verbose|version$/ },
+  force      => { type      => UNDEF },
+  wait       => { type      => UNDEF },
+  hostname   => { type      => SCALAR },
+
+  ostemplate => { type      => SCALAR }, #XXX: Need to make these more robust.
+  config     => { type      => SCALAR }, #XXX: We can pull the data from the
+  private    => { type      => SCALAR }, #XXX: global config file to help
+  root       => { type      => SCALAR }, #XXX: validate this info.
+
+  ipadd      => {
+    type => SCALAR | ARRAYREF, # This handles the type check for us.
+    callbacks => { 'do these look like valid ip(s)?' => sub {
+
+      my $value = shift;
+      my @ips = ref $value eq 'ARRAY' ? @$value : $value;
+      my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+
+      die "Need to handle bad ips somehow while still allowing good ips to be set.";
+
+  }}},
+
+  create_dumpfile => { callbacks => { 'does it look like a valid filename?' => sub {
+    my $file = sprintf 'file://localhost/%s', +shift;
+    $file =~ /^$RE{URI}{file}$/;
+  }}},
+
+  restore_dumpfile => { callbacks => { 'does file exist?' => sub { -e( +shift ) } } },
 
 );
+
+#  my %regexen = (
+#
+#    'bytes'      => sub { +shift =~ /^\d+(?:gmk)?(:\d+(?:gmk)?)?$/ },
+#    'capability' => sub { +shift =~ /^(?:$capability_params):(?:on|off)(?:\s+(?:$capability_params):(?:on|off))*$/ },
+#    'createveid' => sub { +shift > 100 },
+#    'diskspace'  => sub { +shift =~ /^\d+(?:gmk)?(?::\d+(?:gmk)?)?$/i },
+#    'features'   => sub { +shift =~ /^(?:$features_params):(?:on|off)$/ },
+#    'filename' => sub { my $file = sprintf 'file://localhost/%s', +shift; $file =~ /^$RE{URI}{file}$/ },
+#    'fqdn'       => sub { +shift =~ /^(?:$RE{net}{domain}{-nospace})$/ },
+#    'iopriority' => sub { +shift =~ /^[0-7]$/ },
+#    'ipaddr'     => sub { +shift =~ /^(?:$RE{net}{IPv4})(?:[,\s]$RE{net}{IPv4})*$/ },
+#    'ipdel'      => sub { +shift =~ /^(?:$RE{net}{IPv4}|all)$/ },
+#    'iptables'   => sub { +shift =~ /^$iptables_params$/ },
+#    'items'      => sub { +shift =~ /^\d+(?::\d+)?$/ },
+#    'login'      => sub { +shift =~ /^[a-z][a-z0-9_-]{1,15}$/ },
+#    'meminfo' => sub { +shift => /^(?:(?:(?:privvm)?pages:\d+)|none)$/ },
+#    'num2'     => sub { +shift =~ /^\d+(?::\d+)?$/ },
+#    'nump'     => sub { +shift =~ /^\d+%?$/ },
+#    'num'      => sub { +shift =~ /^\d+$/ },
+#    'onoff'    => sub { +shift =~ /^\w+:(?:on|off)$/ },
+#    'pages'    => sub { +shift =~ /^\d+[gmkp]?(?::(?:\d+[gmkp]?|unlimited))?$/ },
+#    'setmode'  => sub { +shift =~ /^restart|ignore$/ },
+#    'userpass' => sub { +shift =~ /^(?:\w+):(?:\w+)$/ },
+#    'veid' => sub { my $ctid = shift; ( $ctid > 100 ) || ( $ctid =~ /^[a-z][a-z0-9_-]{1,15}$/ ) },
+#    'yesno' => sub { +shift =~ /^yes|no$/i },
+#
+#    'true' => sub { 1 },  # we just assume the caller has done their legwork
+#    'cmds' => sub { 1 },
+#
+#    'die'    => sub { croak sprintf '%s not supported at this time',   +shift },
+#    'seeman' => sub { croak sprintf '%s not recommended--see manpage', +shift },
+#
+#  );
 
 ############################################################################
 # Public functions
@@ -266,6 +339,12 @@ would yield
 If a parameter is surrounded with square brackets ( [] ) the parameter is made
 optional.
 
+In order to automate as much of this as possible, there is a special case for
+the 'allow_extra' option to C<validate_with>.  If the returned hash has a key
+named 'allow_extra', you should set C<allow_extra =&gt; 1> in your call to
+validate_with.  Or just delete it if you want to override it for whatever
+reason.
+
 =cut
 
 sub subcommand_specs {
@@ -397,6 +476,9 @@ sub _generate_subcommand {
   my ( $class, $name, $arg, $collection ) = @_;
   my $spec = subcommand_specs( $name );
 
+  # the !! forces either undef or 1
+  my $allow_extra = !! delete $spec->{ allow_extra };
+
   #XXX: Need to handle case of calling class using something like
   #
   # use OpenVZ::vzctl set => { -as => 'setip', arg => 'ipadd' };
@@ -406,8 +488,9 @@ sub _generate_subcommand {
   sub {
 
     my %arg = validate_with(
-      params => \@_,
-      spec   => $spec,
+      params      => \@_,
+      spec        => $spec,
+      allow_extra => $allow_extra,
     );
 
     $arg{ subcommand } = $name;
