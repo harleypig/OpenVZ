@@ -6,6 +6,8 @@ package OpenVZ::vzctl;
 #XXX: Need to abstract out the common code into a top level OpenVZ module.
 #XXX: Need to handle version specially, create a sub for it and remove it from
 #     the validate hash for 'flag'.
+#XXX: Need to use 'on_fail' option for validate_with for smoother error
+#     handling.
 
 =head1 SYNOPSIS
 
@@ -67,106 +69,198 @@ my %vzctl = (
     exec      => [qw( allow_extra )],
     runscript => [qw( allow_extra )],
 
-    chkpnt    => [ '[create_dumpfile]' ],
-    restore   => [ '[restore_dumpfile]' ],
+    chkpnt    => [qw( [create_dumpfile] ) ],
+    restore   => [qw( [restore_dumpfile] ) ],
 
-    create    => [qw( [ostemplate] [config] [private] [root] [ipadd] [hostname] )],
-#    create => <ctid> [--ostemplate <name>] [--config <name>] [--private <path>] [--root <path>] [--ipadd <addr>] | [--hostname <name>]
+    create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
 
-#    set => <ctid> [--save] [--force] [--setmode restart|ignore]
-#   [--ipadd <addr>] [--ipdel <addr>|all] [--hostname <name>]
-#   [--nameserver <addr>] [--searchdomain <name>]
-#   [--onboot yes|no] [--bootorder <N>]
-#   [--userpasswd <user>:<passwd>]
-#   [--cpuunits <N>] [--cpulimit <N>] [--cpus <N>] [--cpumask <cpus>]
-#   [--diskspace <soft>[:<hard>]] [--diskinodes <soft>[:<hard>]]
-#   [--quotatime <N>] [--quotaugidlimit <N>]
-#   [--noatime yes|no] [--capability <name>:on|off ...]
-#   [--devices b|c:major:minor|all:r|w|rw]
-#   [--devnodes device:r|w|rw|none]
-#   [--netif_add <ifname[,mac,host_ifname,host_mac,bridge]]>]
-#   [--netif_del <ifname>]
-#   [--applyconfig <name>] [--applyconfig_map <name>]
-#   [--features <name:on|off>] [--name <vename>] [--ioprio <N>]
-#   [--pci_add [<domain>:]<bus>:<slot>.<func>] [--pci_del <d:b:s.f>]
-#   [--iptables <name>] [--disabled <yes|no>]
-#   [UBC parameters]
+    set       => [qw(
+
+      [applyconfig] [applyconfig_map] [bootorder] [cpulimit] [cpumask] [cpus]
+      [cpuunits] [disabled] [force] [hostname] [ioprio] [ipadd] [ipdel]
+      [nameserver] [noatime] [onboot] [quotatime] [quotaugidlimit] [save]
+      [searchdomain] [setmode] [userpasswd] [capability] [name] [iptables]
+      [features] [devices] [devnodes] [netif_add] [netif_del] [pci_add]
+      [pci_del] [diskinodes] [numfile] [numflock] [numiptent] [numothersock]
+      [numproc] [numpty] [numsiginfo] [numtcpsock] [avnumproc] [diskspace]
+      [dcachesize] [numfile] [numflock] [numiptent] [numothersock] [numproc]
+      [numpty] [numsiginfo] [numtcpsock] [dgramrcvbuf] [kmemsize]
+      [othersockbuf] [tcprcvbuf] [tcpsndbuf] [lockedpages] [oomguarpages]
+      [physpages] [privvmpages] [shmpages] [swappages] [vmguarpages]
+
+   )],
 
 );
 
-my %validate = (
+my %validate = do {
 
-  allow_extra => 1, # special case to handle parms we aren't going to check
-                    # (e.g., exec and friends). Leave it as an invalid entry
-                    # for validate_with so programmers will catch it before it
-                    # goes live.
+  my $cap_names = join '|', qw(
 
-  ctid       => { callbacks => { 'validate ctid' => \&_validate_ctid } },
-  exec       => { type      => SCALAR },
-  flag       => { regex     => qr/^quiet|verbose|version$/ },
-  force      => { type      => UNDEF },
-  wait       => { type      => UNDEF },
-  hostname   => { type      => SCALAR },
+    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+    lease linux_immutable mknod net_admin net_bind_service net_broadcast
+    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+    sys_tty_config ve_admin
 
-  ostemplate => { type      => SCALAR }, #XXX: Need to make these more robust.
-  config     => { type      => SCALAR }, #XXX: We can pull the data from the
-  private    => { type      => SCALAR }, #XXX: global config file to help
-  root       => { type      => SCALAR }, #XXX: validate this info.
+  );
 
-  ipadd      => {
-    type => SCALAR | ARRAYREF, # This handles the type check for us.
-    callbacks => { 'do these look like valid ip(s)?' => sub {
+  my $iptables_names = join '|', qw(
 
-      my $value = shift;
-      my @ips = ref $value eq 'ARRAY' ? @$value : $value;
-      my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+    ipt_ttl xt_mac
 
-      die "Need to handle bad ips somehow while still allowing good ips to be set.";
+  );
 
-  }}},
+  my $features_names = join '|', qw( sysfs nfs sit ipip ppp ipgre bridge nfsd);
 
-  create_dumpfile => { callbacks => { 'does it look like a valid filename?' => sub {
-    my $file = sprintf 'file://localhost/%s', +shift;
-    $file =~ /^$RE{URI}{file}$/;
-  }}},
+  my %hash = (
 
-  restore_dumpfile => { callbacks => { 'does file exist?' => sub { -e( +shift ) } } },
+    allow_extra => 1, # special case to handle parms we aren't going to check
+                      # (e.g., exec and friends). Leave it as an invalid entry
+                      # for validate_with so programmers will catch it before it
+                      # goes live.
 
-);
+    bootorder  => { regex     => qr/^\d+$/ },
+    capability => { regex     => qr/^(?:$cap_names):(?:on|off)$/ },
+    cpumask    => { regex     => qr/^\d+(?:[,-]\d+)*|all$/ },
+    ctid       => { callbacks => { 'validate ctid' => \&_validate_ctid } },
+    exec       => { type      => SCALAR },
+    flag       => { regex     => qr/^quiet|verbose$/ },
+    force      => { type      => UNDEF },
+    ioprio     => { regex     => qr/^[0-7]$/ },
+    onboot     => { regex     => qr/^yes|no$/ },
+    setmode    => { regex     => qr/^restart|ignore/ },
+    userpasswd => { regex     => qr/^(?:\w+):(?:\w+)$/ },
+    features   => { regex     => qr/^(?:$features_names):(?:on|off)$/ },
+    devices    => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/ },
+    diskinodes => { regex     => qr/^\d+(?::\d+)?$/ },
+    avnumproc  => { regex     => qr/^\d+(?:gmkp)?(?::\d+(?:gmkp))?$/i },
 
-#  my %regexen = (
-#
-#    'bytes'      => sub { +shift =~ /^\d+(?:gmk)?(:\d+(?:gmk)?)?$/ },
-#    'capability' => sub { +shift =~ /^(?:$capability_params):(?:on|off)(?:\s+(?:$capability_params):(?:on|off))*$/ },
-#    'createveid' => sub { +shift > 100 },
-#    'diskspace'  => sub { +shift =~ /^\d+(?:gmk)?(?::\d+(?:gmk)?)?$/i },
-#    'features'   => sub { +shift =~ /^(?:$features_params):(?:on|off)$/ },
-#    'filename' => sub { my $file = sprintf 'file://localhost/%s', +shift; $file =~ /^$RE{URI}{file}$/ },
-#    'fqdn'       => sub { +shift =~ /^(?:$RE{net}{domain}{-nospace})$/ },
-#    'iopriority' => sub { +shift =~ /^[0-7]$/ },
-#    'ipaddr'     => sub { +shift =~ /^(?:$RE{net}{IPv4})(?:[,\s]$RE{net}{IPv4})*$/ },
-#    'ipdel'      => sub { +shift =~ /^(?:$RE{net}{IPv4}|all)$/ },
-#    'iptables'   => sub { +shift =~ /^$iptables_params$/ },
-#    'items'      => sub { +shift =~ /^\d+(?::\d+)?$/ },
-#    'login'      => sub { +shift =~ /^[a-z][a-z0-9_-]{1,15}$/ },
-#    'meminfo' => sub { +shift => /^(?:(?:(?:privvm)?pages:\d+)|none)$/ },
-#    'num2'     => sub { +shift =~ /^\d+(?::\d+)?$/ },
-#    'nump'     => sub { +shift =~ /^\d+%?$/ },
-#    'num'      => sub { +shift =~ /^\d+$/ },
-#    'onoff'    => sub { +shift =~ /^\w+:(?:on|off)$/ },
-#    'pages'    => sub { +shift =~ /^\d+[gmkp]?(?::(?:\d+[gmkp]?|unlimited))?$/ },
-#    'setmode'  => sub { +shift =~ /^restart|ignore$/ },
-#    'userpass' => sub { +shift =~ /^(?:\w+):(?:\w+)$/ },
-#    'veid' => sub { my $ctid = shift; ( $ctid > 100 ) || ( $ctid =~ /^[a-z][a-z0-9_-]{1,15}$/ ) },
-#    'yesno' => sub { +shift =~ /^yes|no$/i },
-#
-#    'true' => sub { 1 },  # we just assume the caller has done their legwork
-#    'cmds' => sub { 1 },
-#
-#    'die'    => sub { croak sprintf '%s not supported at this time',   +shift },
-#    'seeman' => sub { croak sprintf '%s not recommended--see manpage', +shift },
-#
-#  );
+    ipadd => {
+      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      callbacks => { 'do these look like valid ip(s)?' => sub {
+
+        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+        return ! @bad_ips; # return 1 if there are no bad ips, undef otherwise.
+
+        #NOTE: I can't find a way to modify the incoming data, and it may not
+        #      be a good idea to do that in any case. Unless, and until, I can
+        #      figure out how to do this the right way this will be an atomic
+        #      operation. It's either all good, or it's not.
+
+    }}},
+
+    ipdel => {
+      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      callbacks => { 'do these look like valid ip(s)?' => sub {
+
+        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+        return 1 if grep { /^all$/i } @bad_ips;
+        return ! @bad_ips;
+
+        #NOTE: See ipadd note.
+
+    }}},
+
+    iptables => {
+      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      callbacks => { 'see manpage for list of valid iptables names' => sub {
+
+        my @names;
+
+        if ( ref $_[0] eq 'ARRAY' ) {
+
+          @names = @$_[0];
+
+        } else {
+
+          my $names = shift;
+          return unless $names =~ s/^['"](.*?)['"]$/$1/;
+          @names = split /\s+/, $names;
+
+        }
+
+        my @bad_names = grep { ! /^$iptables_names$/ } @names;
+        return ! @bad_names;
+
+        #NOTE: See ipadd note.
+
+    }}},
+
+    create_dumpfile => { callbacks => { 'does it look like a valid filename?' => sub {
+      my $file = sprintf 'file://localhost/%s', +shift;
+      $file =~ /^$RE{URI}{file}$/;
+    }}},
+
+    restore_dumpfile => { callbacks => { 'does file exist?' => sub { -e( +shift ) } } },
+
+    devnodes => { callbacks => { 'setting access to devnode' => sub {
+
+      return 1 if $_[0] eq 'none';
+      ( my $device = $_[0] ) =~ s/^(.*?):r?w?q?$/$1/;
+      $device = "/dev/$device";
+      return -e $device;
+
+    }}},
+
+  );
+
+  my %same = (
+
+    # SCALAR checks
+    exec => [qw(
+
+      applyconfig applyconfig_map config hostname name netif_add netif_del
+      ostemplate pci_add pci_del private root searchdomain
+
+    )],
+
+    #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
+    #     robust.  We can pull the data from the global config file to help
+    #     validate this info.
+
+    # UNDEF checks
+    force => [qw( save wait )],
+
+    # INT checks
+    bootorder => [qw( cpulimit cpus cpuunits quotatime quotaugidlimit )],
+
+    # yes or no checks
+    onboot => [qw( disabled noatime )],
+
+    # ip checks
+    ipadd  => [qw( nameserver )],
+
+    # hard|soft limits (no suffixes)
+    diskinodes => [qw(
+
+      numfile numflock numiptent numothersock numproc numpty numsiginfo
+      numtcpsock
+
+    )],
+
+    # hard|soft limits (with suffixes)
+    avnumproc => [qw(
+
+      dcachesize dgramrcvbuf diskspace kmemsize lockedpages numfile numflock
+      numiptent numothersock numproc numpty numsiginfo numtcpsock oomguarpages
+      othersockbuf physpages privvmpages shmpages swappages tcprcvbuf tcpsndbuf
+      vmguarpages
+
+    )],
+  );
+
+  $hash{ $same{ $_ } } = $hash{ $_ }
+    for keys %same;
+
+  %hash;
+
+};
 
 ############################################################################
 # Public functions
