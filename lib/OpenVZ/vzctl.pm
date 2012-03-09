@@ -21,6 +21,15 @@ This program is a simple (or not so simple in some cases) wrapper around the
 'vzctl' program.  It will do some basic verification on options and parameters
 but it will not (currently) do sanity checks on the values.
 
+=head2 NOTE
+
+All of the commands for vzctl are implemented and all of the options for each
+command is provided for, but some commands and options I don't use so I'm not
+sure how to test them.  Tests are welcome.
+
+If you want to know what commands and options are available read C<vzctl>s man
+page.  I followed that in creating this module.
+
 =cut
 
 use strict;
@@ -69,8 +78,8 @@ my %vzctl = (
     exec      => [qw( allow_extra )],
     runscript => [qw( allow_extra )],
 
-    chkpnt    => [qw( [create_dumpfile] ) ],
-    restore   => [qw( [restore_dumpfile] ) ],
+    chkpnt    => [qw( [create_dumpfile] )],
+    restore   => [qw( [restore_dumpfile] )],
 
     create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
 
@@ -255,8 +264,12 @@ my %validate = do {
     )],
   );
 
-  $hash{ $same{ $_ } } = $hash{ $_ }
-    for keys %same;
+  for my $key ( keys %same ) {
+
+    $hash{ $_ } = $hash{ $key }
+      for @{ $same{ $key } };
+
+  }
 
   %hash;
 
@@ -536,8 +549,6 @@ sub _validate_ctid {
 
   # XXX: Need to modify this when vzlist is handled so we keep things
   # uncluttered.
-
-  $DB::single = 1;
 
   my ( $stdout, $stderr, $syserr ) = execute({
     command => 'vzlist',
