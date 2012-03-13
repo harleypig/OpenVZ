@@ -8,23 +8,13 @@ use Data::Dump 'dump';
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
-BEGIN { use_ok( 'OpenVZ::vzctl', 'start', 'status' ) }
+BEGIN { use_ok( 'OpenVZ::vzctl', ':all' ) }
 
 # Copy the %vzctl and %validate hashes from the source file and paste it here
 # This way any changes to the source will be caught here and the programmer
 # will have to at least put in a little effort to test. :]
 
 my %expected_vzctl = (
-
-    destroy   => [],
-    mount     => [],
-    quotainit => [],
-    quotaoff  => [],
-    quotaon   => [],
-    restart   => [],
-    status    => [],
-    stop      => [],
-    umount    => [],
 
     start     => [qw( [force] [wait] )],
     enter     => [qw( [exec] allow_extra )],

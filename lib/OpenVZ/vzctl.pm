@@ -51,10 +51,14 @@ our %global;
 ############################################################################
 # Base structure describing the subcommands and their arguments.
 
-# Every subcommand requires ctid and has the optional flag.
-# [parm] will make the parm optional in C<subcommand_specs>.
+# Every subcommand requires ctid and has the optional flag of C<quiet> or
+# C<verbose>.  Though these flags are mutually exclusive, C<vzctl> will accept
+# both at the same time.  Results are undefined.
 
-# subcommands like exec, exec2 and runscript run a command in the container.
+# Surrounding a paremeter with square brackets ( [parm] ) will make the parm
+# optional in C<subcommand_specs>.
+
+# Subcommands like exec, exec2 and runscript run a command in the container.
 # It's not really feasible to check within the container for the validity of
 # a command or any arguments passed, so we'll assume the caller knows what
 # they're doing with those by using C<allow_extra>.
@@ -71,12 +75,12 @@ my %vzctl = (
     stop      => [],
     umount    => [],
 
+    exec      => [qw( allow_extra )],
+    exec2     => [qw( allow_extra )],
+    runscript => [qw( allow_extra )],
+
     start     => [qw( [force] [wait] )],
     enter     => [qw( [exec] allow_extra )],
-
-    exec2     => [qw( allow_extra )],
-    exec      => [qw( allow_extra )],
-    runscript => [qw( allow_extra )],
 
     chkpnt    => [qw( [create_dumpfile] )],
     restore   => [qw( [restore_dumpfile] )],
@@ -391,8 +395,9 @@ sub vzctl {
     } elsif ( $ref eq '' ) {
 
       push @params, $arg_name;
+
       push @params, $arg{ $p }
-        unless $arg{ $p } eq undef;
+        if $arg{ $p } ne '';
 
     } else {
 
@@ -578,28 +583,27 @@ sub _validate_ctid {
 
 sub _generate_subcommand {
 
-  my ( $class, $name, $arg, $collection ) = @_;
-  my $spec = subcommand_specs( $name );
-
-  # the !! forces either undef or 1
-  my $allow_extra = !! delete $spec->{ allow_extra };
-
   #XXX: Need to handle case of calling class using something like
   #
   # use OpenVZ::vzctl set => { -as => 'setip', arg => 'ipadd' };
   #
   # and creating a sub that only accepts the ipadd parameter.
 
+  my ( $class, $name, $arg, $collection ) = @_;
+  my $spec = subcommand_specs( $name );
+
+  my %sub_spec;
+
+  $sub_spec{ allow_extra } = 1
+    if delete $spec->{ allow_extra };
+
+  $sub_spec{ spec } = $spec;
+
   sub {
 
-    my %arg = validate_with(
-      params      => \@_,
-      spec        => $spec,
-      allow_extra => $allow_extra,
-    );
-
+    $sub_spec{ params } = \@_;
+    my %arg = validate_with( %sub_spec );
     $arg{ subcommand } = $name;
-
     vzctl( \%arg );
 
   }
