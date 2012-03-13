@@ -1,5 +1,5 @@
 
-use Test::Most tests => 18;
+use Test::Most skip_all => 'being phased out';
 use Test::NoWarnings;
 
 use Regexp::Common qw( URI net );
