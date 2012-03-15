@@ -18,12 +18,14 @@ my $invalid_name_rx = qr/\QInvalid or unknown container (invalid_name): CT ID in
 my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
 my $badflag_rx      = qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/;
 
+# Test invalid ctid and name
 throws_ok { stop( ctid => 'invalid_ctid' ) } $invalid_ctid_rx, 'caught invalid ctid';
 throws_ok { stop( ctid => 'invalid_name' ) } $invalid_name_rx, 'caught invalid name';
-throws_ok { stop( ctid => $test, badparm => 'blech' ) } $badparm_rx, 'caught bad parm';
-throws_ok { stop( ctid => $test, flag => 'badflag' ) } $badflag_rx, 'caught bad flag';
 
-my %hash = (
+# Test bad global flag
+throws_ok { stop( ctid => $test, flag => 'badflag' ) } $badflag_rx, 'caught bad global flag';
+
+my %global_flag = (
 
   ''        => { ctid => $test },
   'quiet'   => { ctid => $test, flag => 'quiet' },
@@ -31,9 +33,9 @@ my %hash = (
 
 );
 
-for my $flag ( keys %hash ) {
+for my $flag ( keys %global_flag ) {
 
-  my @response = stop( $hash{ $flag } );
+  my @response = stop( $global_flag{ $flag } );
 
   my $expected_cmd = sprintf 'vzctl %sstop %s', ($flag?"--$flag ":''), $ctid;
 
@@ -51,3 +53,5 @@ for my $flag ( keys %hash ) {
   is( $OpenVZ::vzctl::global{ 'name' }, '', "global name reset");
 
 }
+
+throws_ok { stop( ctid => $test, badparm => 'blech' ) } $badparm_rx, 'caught bad parm';

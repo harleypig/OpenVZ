@@ -7,7 +7,7 @@ use Test::NoWarnings;
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
-BEGIN { use_ok( 'OpenVZ::vzctl', 'start' ) }
+BEGIN { use_ok( 'OpenVZ::vzctl', 'quotainit' ) }
 
 my $ctid = int 100 + rand( 100 );
 my $name = join '', map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
@@ -18,10 +18,10 @@ my $invalid_name_rx = qr/\QInvalid or unknown container (invalid_name): CT ID in
 my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
 my $badflag_rx      = qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/;
 
-throws_ok { start( ctid => 'invalid_ctid' ) } $invalid_ctid_rx, 'caught invalid ctid';
-throws_ok { start( ctid => 'invalid_name' ) } $invalid_name_rx, 'caught invalid name';
-throws_ok { start( ctid => $test, badparm => 'blech' ) } $badparm_rx, 'caught bad parm';
-throws_ok { start( ctid => $test, flag => 'badflag' ) } $badflag_rx, 'caught bad flag';
+throws_ok { quotainit( ctid => 'invalid_ctid' ) } $invalid_ctid_rx, 'caught invalid ctid';
+throws_ok { quotainit( ctid => 'invalid_name' ) } $invalid_name_rx, 'caught invalid name';
+throws_ok { quotainit( ctid => $test, badparm => 'blech' ) } $badparm_rx, 'caught bad parm';
+throws_ok { quotainit( ctid => $test, flag => 'badflag' ) } $badflag_rx, 'caught bad flag';
 
 my %hash = (
 
@@ -33,9 +33,9 @@ my %hash = (
 
 for my $flag ( keys %hash ) {
 
-  my @response = start( $hash{ $flag } );
+  my @response = quotainit( $hash{ $flag } );
 
-  my $expected_cmd = sprintf 'vzctl %sstart %s', ($flag?"--$flag ":''), $ctid;
+  my $expected_cmd = sprintf 'vzctl %squotainit %s', ($flag?"--$flag ":''), $ctid;
 
   is( $OpenVZ::vzctl::global{ 'ctid' }, $ctid, "global ctid ($ctid) set correctly");
   is( $OpenVZ::vzctl::global{ 'name' }, $name, "global name ($name) set correctly");

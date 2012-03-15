@@ -51,17 +51,503 @@ our %global;
 ############################################################################
 # Base structure describing the subcommands and their arguments.
 
+=vzctl_cmd chkpnt
+
+C<chkpnt> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+Can be either a CTID or name. The command C<vzlist -Ho name,ctid value> is
+used to determine if C<value> is a valid identifier.
+
+=item create_dumpfile (optional)
+
+Expects a scalar that looks like a file but does not check if it's possible to
+write to the specified file.  L<Regexp::Common>'s C<URI> regex is used to
+determine what looks like a file.
+
+=back
+
+See the C<vzctl> manpage for information on the C<chkpnt> command.
+
+=vzctl_cmd create
+
+C<create> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item config (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item hostname (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item ipadd (optional)
+
+Expects a scalar or a reference to an array. L<Regexp::Common>'s C<net IPv4> regex
+is used to determine if the values are valid looking ips.
+
+=item ostemplate (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item private (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item root (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=back
+
+See the C<vzctl> manpage for information on the C<create> command.
+
+=vzctl_cmd destroy
+
+C<destroy> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<destroy> command.
+
+=vzctl_cmd enter
+
+C<enter> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item exec (optional)
+
+Expects a scalar or reference to an array but doesn't check for the validity
+of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<enter> command.
+
+=vzctl_cmd exec
+
+C<exec> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item command
+
+Expects a scalar or a reference to an array but doesn't check for the validity
+of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<exec> command.
+
+=vzctl_cmd exec2
+
+C<exec2> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item command
+
+Expects a scalar or a reference to an array but doesn't check for the validity
+of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<exec2> command.
+
+=vzctl_cmd mount
+
+C<mount> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<mount> command.
+
+=vzctl_cmd quotainit
+
+C<quotainit> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotainit> command.
+
+=vzctl_cmd quotaoff
+
+C<quotaoff> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotaoff> command.
+
+=vzctl_cmd quotaon
+
+C<quotaon> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotaon> command.
+
+=vzctl_cmd restart
+
+C<restart> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<restart> command.
+
+=vzctl_cmd restore
+
+C<restore> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item restore_dumpfile
+
+Checks if the file exists, but does not check for validity of file format.
+
+=back
+
+See the C<vzctl> manpage for information on the C<restore> command.
+
+=vzctl_cmd runscript
+
+C<runscript> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item script
+
+Expects a scalar or a reference to an array but doesn't check for the validity
+of the script.
+
+=back
+
+See the C<vzctl> manpage for information on the C<runscript> command.
+
+=vzctl_cmd set
+
+C<set> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item applyconfig
+
+=item applyconfig_map
+
+=item hostname
+
+=item name
+
+=item netif_add
+
+=item netif_del
+
+=item pci_add
+
+=item pci_del
+
+=item searchdomain
+
+Expects a scalar. No other validation is performed.
+
+=item avnumproc
+
+=item dcachesize
+
+=item dgramrcvbuf
+
+=item diskinodes
+
+=item diskspace
+
+=item kmemsize
+
+=item lockedpages
+
+=item numfile
+
+=item numflock
+
+=item numiptent
+
+=item numothersock
+
+=item numproc
+
+=item numpty
+
+=item numsiginfo
+
+=item numtcpsock
+
+=item oomguarpages
+
+=item othersockbuf
+
+=item physpages
+
+=item privvmpages
+
+=item shmpages
+
+=item swappages
+
+=item tcprcvbuf
+
+=item tcpsndbuf
+
+=item vmguarpages
+
+Expects an integer followed by an optional 'g', 'm', 'k' or 'p', followed
+optionally by a colon and an integer and an optional 'g', 'm', 'k' or 'p'.
+E.g., 5M or 5M:15M.
+
+=item bootorder
+
+=item cpulimit
+
+=item cpus
+
+=item cpuunits
+
+=item quotatime
+
+=item quotaugidlimit
+
+Expects an integer.
+
+=item capability
+
+Expects one of the following capabilities
+
+    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+    lease linux_immutable mknod net_admin net_bind_service net_broadcast
+    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+    sys_tty_config ve_admin
+
+joined with either 'on' or 'off' with a colon. E.g., 'chown:on'.
+
+=item cpumask
+
+Expects either a comma separated list of integers or the word 'all'.
+
+=item devices
+
+Expects a device that matches the regex
+
+  /^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/
+
+No other validation is performed.
+
+XXX Better explanation needed here.
+
+=item devnodes
+
+=item features
+
+Expects one of the following features
+
+  sysfs nfs sit ipip ppp ipgre bridge nfsd
+
+followed by a colon and either 'on' or 'off'.
+
+=item force
+
+=item save
+
+Expects either undef or the empty string.
+
+=item ioprio
+
+Expects a single integer from 0 to 7.
+
+=item ipadd
+
+=item ipdel
+
+Expects either an array reference or a space separated list of ips to be added
+or deleted. L<Regexp::Common>'s C<net IPv4> regex is used to determine if the
+ips look valid.  No other validation is performed.
+
+C<ipdel> also accepts 'all' to delete all ips.
+
+=item iptables
+
+Expects either an array reference or space separated list of one or more of
+the following
+
+    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+    ipt_ttl xt_mac
+
+=item nameserver
+
+=item disabled
+
+=item noatime
+
+=item onboot
+
+Expects either 'yes' or 'no'.
+
+=item setmode
+
+Expects either 'restart' or 'ignore'.
+
+=item userpasswd
+
+Expects two strings separated by a colon.  No other validation is performed on
+the value.
+
+=back
+
+=back
+
+See the C<vzctl> manpage for information on the C<set> command.
+
+=vzctl_cmd start
+
+C<start> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item force
+
+=item wait
+
+Expects either undef or the empty string.
+
+=back
+
+See the C<vzctl> manpage for information on the C<start> command.
+
+=vzctl_cmd status
+
+C<status> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<status> command.
+
+=vzctl_cmd stop
+
+C<stop> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<stop> command.
+
+=vzctl_cmd umount
+
+C<umount> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<umount> command.
+
+=cut
+
 # Every subcommand requires ctid and has the optional flag of C<quiet> or
 # C<verbose>.  Though these flags are mutually exclusive, C<vzctl> will accept
-# both at the same time.  Results are undefined.
+# both at the same time.  Results are undefined when using both flag at the
+# same time.
 
 # Surrounding a paremeter with square brackets ( [parm] ) will make the parm
 # optional in C<subcommand_specs>.
-
-# Subcommands like exec, exec2 and runscript run a command in the container.
-# It's not really feasible to check within the container for the validity of
-# a command or any arguments passed, so we'll assume the caller knows what
-# they're doing with those by using C<allow_extra>.
 
 my %vzctl = (
 
@@ -75,12 +561,12 @@ my %vzctl = (
     stop      => [],
     umount    => [],
 
-    exec      => [qw( allow_extra )],
-    exec2     => [qw( allow_extra )],
-    runscript => [qw( allow_extra )],
+    exec      => [qw( command )],
+    exec2     => [qw( command )],
+    runscript => [qw( script )],
 
     start     => [qw( [force] [wait] )],
-    enter     => [qw( [exec] allow_extra )],
+    enter     => [qw( [exec] )],
 
     chkpnt    => [qw( [create_dumpfile] )],
     restore   => [qw( [restore_dumpfile] )],
@@ -89,17 +575,16 @@ my %vzctl = (
 
     set       => [qw(
 
-      [applyconfig] [applyconfig_map] [bootorder] [cpulimit] [cpumask] [cpus]
-      [cpuunits] [disabled] [force] [hostname] [ioprio] [ipadd] [ipdel]
-      [nameserver] [noatime] [onboot] [quotatime] [quotaugidlimit] [save]
-      [searchdomain] [setmode] [userpasswd] [capability] [name] [iptables]
-      [features] [devices] [devnodes] [netif_add] [netif_del] [pci_add]
-      [pci_del] [diskinodes] [numfile] [numflock] [numiptent] [numothersock]
-      [numproc] [numpty] [numsiginfo] [numtcpsock] [avnumproc] [diskspace]
-      [dcachesize] [numfile] [numflock] [numiptent] [numothersock] [numproc]
-      [numpty] [numsiginfo] [numtcpsock] [dgramrcvbuf] [kmemsize]
-      [othersockbuf] [tcprcvbuf] [tcpsndbuf] [lockedpages] [oomguarpages]
-      [physpages] [privvmpages] [shmpages] [swappages] [vmguarpages]
+      [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
+      [cpulimit] [cpumask] [cpus] [cpuunits] [dcachesize] [devices] [devnodes]
+      [dgramrcvbuf] [disabled] [diskinodes] [diskspace] [features] [force]
+      [hostname] [ioprio] [ipadd] [ipdel] [iptables] [kmemsize] [lockedpages]
+      [name] [nameserver] [netif_add] [netif_del] [noatime] [numfile]
+      [numflock] [numiptent] [numothersock] [numproc] [numpty] [numsiginfo]
+      [numtcpsock] [onboot] [oomguarpages] [othersockbuf] [pci_add] [pci_del]
+      [physpages] [privvmpages] [quotatime] [quotaugidlimit] [save]
+      [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
+      [userpasswd] [vmguarpages]
 
    )],
 
@@ -131,26 +616,21 @@ my %validate = do {
 
   my %hash = (
 
-    allow_extra => 1, # special case to handle parms we aren't going to check
-                      # (e.g., exec and friends). Leave it as an invalid entry
-                      # for validate_with so programmers will catch it before it
-                      # goes live.
-
-    bootorder  => { regex     => qr/^\d+$/ },
-    capability => { regex     => qr/^(?:$cap_names):(?:on|off)$/ },
-    cpumask    => { regex     => qr/^\d+(?:[,-]\d+)*|all$/ },
-    ctid       => { callbacks => { 'validate ctid' => \&_validate_ctid } },
-    exec       => { type      => SCALAR },
-    flag       => { regex     => qr/^quiet|verbose$/ },
-    force      => { type      => UNDEF },
-    ioprio     => { regex     => qr/^[0-7]$/ },
-    onboot     => { regex     => qr/^yes|no$/ },
-    setmode    => { regex     => qr/^restart|ignore/ },
-    userpasswd => { regex     => qr/^(?:\w+):(?:\w+)$/ },
-    features   => { regex     => qr/^(?:$features_names):(?:on|off)$/ },
-    devices    => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/ },
-    diskinodes => { regex     => qr/^\d+(?::\d+)?$/ },
-    avnumproc  => { regex     => qr/^\d+(?:gmkp)?(?::\d+(?:gmkp))?$/i },
+    applyconfig => { type      => SCALAR },
+    avnumproc   => { regex     => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
+    bootorder   => { regex     => qr/^\d+$/ },
+    capability  => { regex     => qr/^(?:$cap_names):(?:on|off)$/i },
+    command     => { type      => SCALAR | ARRAYREF },
+    cpumask     => { regex     => qr/^\d+(?:[,-]\d+)*|all$/i },
+    ctid        => { callbacks => { 'validate ctid' => \&_validate_ctid } },
+    devices     => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/i },
+    features    => { regex     => qr/^(?:$features_names):(?:on|off)$/i },
+    flag        => { regex     => qr/^quiet|verbose$/i },
+    force       => { type      => UNDEF },
+    ioprio      => { regex     => qr/^[0-7]$/ },
+    onboot      => { regex     => qr/^yes|no$/i },
+    setmode     => { regex     => qr/^restart|ignore/i },
+    userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
 
     ipadd => {
       type => SCALAR | ARRAYREF, # This handles the type check for us.
@@ -226,12 +706,15 @@ my %validate = do {
   my %same = (
 
     # SCALAR checks
-    exec => [qw(
+    applyconfig => [qw(
 
-      applyconfig applyconfig_map config hostname name netif_add netif_del
-      ostemplate pci_add pci_del private root searchdomain
+      applyconfig_map config hostname name netif_add netif_del ostemplate
+      pci_add pci_del private root searchdomain
 
     )],
+
+    # SCALAR | ARRAYREF checks
+    command => [qw( exec script )],
 
     #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
     #     robust.  We can pull the data from the global config file to help
@@ -249,21 +732,13 @@ my %validate = do {
     # ip checks
     ipadd  => [qw( nameserver )],
 
-    # hard|soft limits (no suffixes)
-    diskinodes => [qw(
-
-      numfile numflock numiptent numothersock numproc numpty numsiginfo
-      numtcpsock
-
-    )],
-
-    # hard|soft limits (with suffixes)
+    # hard|soft limits
     avnumproc => [qw(
 
       dcachesize dgramrcvbuf diskspace kmemsize lockedpages numfile numflock
       numiptent numothersock numproc numpty numsiginfo numtcpsock oomguarpages
-      othersockbuf physpages privvmpages shmpages swappages tcprcvbuf tcpsndbuf
-      vmguarpages
+      othersockbuf physpages privvmpages shmpages swappages tcprcvbuf
+      tcpsndbuf vmguarpages
 
     )],
   );
