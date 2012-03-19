@@ -620,17 +620,26 @@ my %validate = do {
     avnumproc   => { regex     => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
     bootorder   => { regex     => qr/^\d+$/ },
     capability  => { regex     => qr/^(?:$cap_names):(?:on|off)$/i },
-    command     => { type      => SCALAR | ARRAYREF },
     cpumask     => { regex     => qr/^\d+(?:[,-]\d+)*|all$/i },
     ctid        => { callbacks => { 'validate ctid' => \&_validate_ctid } },
     devices     => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/i },
     features    => { regex     => qr/^(?:$features_names):(?:on|off)$/i },
-    flag        => { regex     => qr/^quiet|verbose$/i },
+    flag        => { regex     => qr/^quiet|verbose|version$/i },
     force       => { type      => UNDEF },
     ioprio      => { regex     => qr/^[0-7]$/ },
     onboot      => { regex     => qr/^yes|no$/i },
     setmode     => { regex     => qr/^restart|ignore/i },
     userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
+
+    command => {
+      type      => SCALAR | ARRAYREF, # This handles the type check for us.
+      callbacks => { 'do not want empty values' => sub {
+
+        return ref $_[0] eq '' ? do { $_[0] ne '' }
+                               : do { $_[0]->[0] eq '' };
+
+      }},
+    },
 
     ipadd => {
       type => SCALAR | ARRAYREF, # This handles the type check for us.
@@ -685,12 +694,17 @@ my %validate = do {
 
     }}},
 
-    create_dumpfile => { callbacks => { 'does it look like a valid filename?' => sub {
-      my $file = sprintf 'file://localhost/%s', +shift;
-      $file =~ /^$RE{URI}{file}$/;
+    create_dumpfile => {
+      type      => SCALAR, # This handles the type check for us.
+      callbacks => { 'does it look like a valid filename?' => sub {
+        my $file = sprintf 'file://localhost/%s', +shift;
+        $file =~ /^$RE{URI}{file}$/;
     }}},
 
-    restore_dumpfile => { callbacks => { 'does file exist?' => sub { -e( +shift ) } } },
+    restore_dumpfile => {
+      type      => SCALAR, # This handles the type check for us.
+      callbacks => { 'does file exist?' => sub { -e( +shift ) } },
+    },
 
     devnodes => { callbacks => { 'setting access to devnode' => sub {
 
@@ -713,12 +727,12 @@ my %validate = do {
 
     )],
 
-    # SCALAR | ARRAYREF checks
-    command => [qw( exec script )],
-
     #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
     #     robust.  We can pull the data from the global config file to help
     #     validate this info.
+
+    # SCALAR | ARRAYREF checks
+    command => [qw( exec script )],
 
     # UNDEF checks
     force => [qw( save wait )],
@@ -735,10 +749,10 @@ my %validate = do {
     # hard|soft limits
     avnumproc => [qw(
 
-      dcachesize dgramrcvbuf diskspace kmemsize lockedpages numfile numflock
-      numiptent numothersock numproc numpty numsiginfo numtcpsock oomguarpages
-      othersockbuf physpages privvmpages shmpages swappages tcprcvbuf
-      tcpsndbuf vmguarpages
+      dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
+      numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
+      oomguarpages othersockbuf physpages privvmpages shmpages swappages
+      tcprcvbuf tcpsndbuf vmguarpages
 
     )],
   );
