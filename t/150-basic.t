@@ -7,10 +7,6 @@ use Test::Most tests => 2231;
 use Test::NoWarnings;
 
 use Try::Tiny;
-use Algorithm::Combinatorics 'combinations';
-
-#use Regexp::Common qw( URI net );
-#use Params::Validate qw( :all );
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
