@@ -1,27 +1,41 @@
+#!/usr/bin/perl
 
-use Test::Most skip_all => 'being phased out';
+use strict;
+use warnings;
+
+use Test::Most tests => 2231;
 use Test::NoWarnings;
 
-use Regexp::Common qw( URI net );
-use Params::Validate qw( :all );
-use Data::Dump 'dump';
+use Try::Tiny;
+use Algorithm::Combinatorics 'combinations';
+
+#use Regexp::Common qw( URI net );
+#use Params::Validate qw( :all );
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
 BEGIN { use_ok( 'OpenVZ::vzctl', ':all' ) }
 
-# Copy the %vzctl and %validate hashes from the source file and paste it here
-# This way any changes to the source will be caught here and the programmer
-# will have to at least put in a little effort to test. :]
+# Copy this hash from OpenVZ::vzctl
 
-my %expected_vzctl = (
+my %vzctl = (
+
+    destroy   => [],
+    mount     => [],
+    quotainit => [],
+    quotaoff  => [],
+    quotaon   => [],
+    restart   => [],
+    status    => [],
+    stop      => [],
+    umount    => [],
+
+    exec      => [qw( command )],
+    exec2     => [qw( command )],
+    runscript => [qw( script )],
 
     start     => [qw( [force] [wait] )],
-    enter     => [qw( [exec] allow_extra )],
-
-    exec2     => [qw( allow_extra )],
-    exec      => [qw( allow_extra )],
-    runscript => [qw( allow_extra )],
+    enter     => [qw( [exec] )],
 
     chkpnt    => [qw( [create_dumpfile] )],
     restore   => [qw( [restore_dumpfile] )],
@@ -30,25 +44,36 @@ my %expected_vzctl = (
 
     set       => [qw(
 
-      [applyconfig] [applyconfig_map] [bootorder] [cpulimit] [cpumask] [cpus]
-      [cpuunits] [disabled] [force] [hostname] [ioprio] [ipadd] [ipdel]
-      [nameserver] [noatime] [onboot] [quotatime] [quotaugidlimit] [save]
-      [searchdomain] [setmode] [userpasswd] [capability] [name] [iptables]
-      [features] [devices] [devnodes] [netif_add] [netif_del] [pci_add]
-      [pci_del] [diskinodes] [numfile] [numflock] [numiptent] [numothersock]
-      [numproc] [numpty] [numsiginfo] [numtcpsock] [avnumproc] [diskspace]
-      [dcachesize] [numfile] [numflock] [numiptent] [numothersock] [numproc]
-      [numpty] [numsiginfo] [numtcpsock] [dgramrcvbuf] [kmemsize]
-      [othersockbuf] [tcprcvbuf] [tcpsndbuf] [lockedpages] [oomguarpages]
-      [physpages] [privvmpages] [shmpages] [swappages] [vmguarpages]
+      [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
+      [cpulimit] [cpumask] [cpus] [cpuunits] [dcachesize] [devices] [devnodes]
+      [dgramrcvbuf] [disabled] [diskinodes] [diskspace] [features] [force]
+      [hostname] [ioprio] [ipadd] [ipdel] [iptables] [kmemsize] [lockedpages]
+      [name] [nameserver] [netif_add] [netif_del] [noatime] [numfile]
+      [numflock] [numiptent] [numothersock] [numproc] [numpty] [numsiginfo]
+      [numtcpsock] [onboot] [oomguarpages] [othersockbuf] [pci_add] [pci_del]
+      [physpages] [privvmpages] [quotatime] [quotaugidlimit] [save]
+      [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
+      [userpasswd] [vmguarpages]
 
    )],
 
 );
 
-my %expected_validate = do {
+my %check = do {
 
-  my $cap_names = join '|', qw(
+  # Basic types to check for:
+
+  my $scalar    = 'scalar';
+  my $arrayref  = [qw( bad1 bad2 )];
+  my $hashref   = { bad3 => 4, bad5 => 6 };
+  my $coderef   = sub {};
+  my $glob      = do { local *GLOB };
+  my $globref   = \*GLOB;
+
+  my $not_allowed_type = qr/not one of the allowed types/;
+  my $did_not_pass = qr/did not pass/;
+
+  my @cap_names = qw(
 
     chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
     lease linux_immutable mknod net_admin net_bind_service net_broadcast
@@ -58,7 +83,18 @@ my %expected_validate = do {
 
   );
 
-  my $iptables_names = join '|', qw(
+  my @good_cap_names = map { ( "$_:on", "$_:off" ) } @cap_names;
+  my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
+  push @bad_cap_names, 'justallaroundbad', $did_not_pass;
+
+  my @features_names = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
+
+  my @good_features_names = map { ( "$_:on", "$_:off" ) } @features_names;
+  my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) }
+  @features_names;
+  push @bad_features_names, 'justallaroundbad', $did_not_pass;
+
+  my @iptables_names = qw(
 
     ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
     iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
@@ -68,115 +104,298 @@ my %expected_validate = do {
 
   );
 
-  my $features_names = join '|', qw( sysfs nfs sit ipip ppp ipgre bridge nfsd);
-
   my %hash = (
 
-    allow_extra => 1, # special case to handle parms we aren't going to check
-                      # (e.g., exec and friends). Leave it as an invalid entry
-                      # for validate_with so programmers will catch it before it
-                      # goes live.
+    applyconfig => {
+      good => [ $scalar ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+      ],
+    },
 
-    bootorder  => { regex     => qr/^\d+$/ },
-    capability => { regex     => qr/^(?:$cap_names):(?:on|off)$/ },
-    cpumask    => { regex     => qr/^\d+(?:[,-]\d+)*|all$/ },
-    ctid       => { callbacks => { 'validate ctid' => \&_validate_ctid } },
-    exec       => { type      => SCALAR },
-    flag       => { regex     => qr/^quiet|verbose$/ },
-    force      => { type      => UNDEF },
-    ioprio     => { regex     => qr/^[0-7]$/ },
-    onboot     => { regex     => qr/^yes|no$/ },
-    setmode    => { regex     => qr/^restart|ignore/ },
-    userpasswd => { regex     => qr/^(?:\w+):(?:\w+)$/ },
-    features   => { regex     => qr/^(?:$features_names):(?:on|off)$/ },
-    devices    => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/ },
-    diskinodes => { regex     => qr/^\d+(?::\d+)?$/ },
-    avnumproc  => { regex     => qr/^\d+(?:gmkp)?(?::\d+(?:gmkp))?$/i },
+    avnumproc => {
+      good => [ 100, '101g', '102m', '103k', '104p', '105:106', '107g:108m', '109k:110p' ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+      ],
+    },
+
+    bootorder => {
+      good => [ 1 ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+      ],
+    },
+
+    capability => {
+      good => \@good_cap_names,
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+        @bad_cap_names,
+      ],
+    },
+
+    command => {
+      good => [ 'good', [qw( one two )] ],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        []      , $did_not_pass,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+      bare => 1, # --command should not appear in the actual command
+    },
+
+    cpumask => {
+      good => [ 1, '2:3', 'all' ],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+    },
+
+    devices => {
+      good => [ 'none', 'all:r', 'all:w', 'all:rw', 'b:1:2', 'c:3:4' ],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+        'all'   , $did_not_pass,
+      ],
+    },
+
+    features => {
+      good => \@good_features_names,
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+        @bad_features_names
+      ],
+    },
+
+    force => {
+      good => [ undef, '' ],
+      bad  => [
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+    },
+
+    ioprio => {
+      good => [ 0 .. 7 ],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+        8       , $did_not_pass,
+      ],
+    },
+
+    onboot => {
+      good => [qw( yes no )],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        $scalar , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+    },
+
+    setmode => {
+      good => [qw( restart ignore )],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        $scalar , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+    },
+
+#    userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
+    userpasswd => {
+      good => [ 'joeuser:seekrit' ],
+      bad  => [
+        undef   , $not_allowed_type,
+        ''      , $did_not_pass,
+        $scalar , $did_not_pass,
+        \$scalar, $not_allowed_type,
+        $hashref, $not_allowed_type,
+        $coderef, $not_allowed_type,
+        $glob   , $not_allowed_type,
+        $globref, $not_allowed_type,
+      ],
+    },
 
     ipadd => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
-      callbacks => { 'do these look like valid ip(s)?' => sub {
-
-        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
-        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-        return ! @bad_ips; # return 1 if there are no bad ips, undef otherwise.
-
-        #NOTE: I can't find a way to modify the incoming data, and it may not
-        #      be a good idea to do that in any case. Unless, and until, I can
-        #      figure out how to do this the right way this will be an atomic
-        #      operation. It's either all good, or it's not.
-
-    }}},
+      good => [ '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
+      bad  => [
+        undef      , $not_allowed_type,
+        ''         , $did_not_pass,
+        $scalar    , $did_not_pass,
+        \$scalar   , $not_allowed_type,
+        []         , $did_not_pass,
+        $hashref   , $not_allowed_type,
+        $coderef   , $not_allowed_type,
+        $glob      , $not_allowed_type,
+        $globref   , $not_allowed_type,
+        '300.1.2.3', $did_not_pass,
+        [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
+      ],
+    },
 
     ipdel => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
-      callbacks => { 'do these look like valid ip(s)?' => sub {
+      good => [ 'all', '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
+      bad  => [
+        undef      , $not_allowed_type,
+        ''         , $did_not_pass,
+        $scalar    , $did_not_pass,
+        \$scalar   , $not_allowed_type,
+        []         , $did_not_pass,
+        $hashref   , $not_allowed_type,
+        $coderef   , $not_allowed_type,
+        $glob      , $not_allowed_type,
+        $globref   , $not_allowed_type,
+        '300.1.2.3', $did_not_pass,
+        [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
+      ],
+    },
 
-        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
-        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-        return 1 if grep { /^all$/i } @bad_ips;
-        return ! @bad_ips;
-
-        #NOTE: See ipadd note.
-
-    }}},
-
+#    iptables => {
     iptables => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
-      callbacks => { 'see manpage for list of valid iptables names' => sub {
+      good => \@iptables_names,
+      bad  => [
+        undef      , $not_allowed_type,
+        ''         , $did_not_pass,
+        $scalar    , $did_not_pass,
+        \$scalar   , $not_allowed_type,
+        []         , $did_not_pass,
+        $arrayref  , $did_not_pass,
+        $hashref   , $not_allowed_type,
+        $coderef   , $not_allowed_type,
+        $glob      , $not_allowed_type,
+        $globref   , $not_allowed_type,
+      ],
+    },
 
-        my @names;
+    create_dumpfile => {
+      good => [ '/tmp/testfile' ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+      ],
+    },
 
-        if ( ref $_[0] eq 'ARRAY' ) {
+    restore_dumpfile => {
+      good => [ '/dev/urandom' ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+        '/why/do/you/have/a/path/that/looks/like/this', $did_not_pass,
+      ],
+    },
 
-          @names = @$_[0];
-
-        } else {
-
-          my $names = shift;
-          return unless $names =~ s/^['"](.*?)['"]$/$1/;
-          @names = split /\s+/, $names;
-
-        }
-
-        my @bad_names = grep { ! /^$iptables_names$/ } @names;
-        return ! @bad_names;
-
-        #NOTE: See ipadd note.
-
-    }}},
-
-    create_dumpfile => { callbacks => { 'does it look like a valid filename?' => sub {
-      my $file = sprintf 'file://localhost/%s', +shift;
-      $file =~ /^$RE{URI}{file}$/;
-    }}},
-
-    restore_dumpfile => { callbacks => { 'does file exist?' => sub { -e( +shift ) } } },
-
-    devnodes => { callbacks => { 'setting access to devnode' => sub {
-
-      return 1 if $_[0] eq 'none';
-      ( my $device = $_[0] ) =~ s/^(.*?):r?w?q?$/$1/;
-      $device = "/dev/$device";
-      return -e $device;
-
-    }}},
-
+#    devnodes => { callbacks => { 'setting access to devnode' => sub {
+    devnodes => {
+      good => [qw( none urandom:r urandom:w urandom:q urandom:rw urandom:rq urandom:wq ) ],
+      bad  => [
+        undef    , $not_allowed_type,
+        ''       , $did_not_pass,
+        $scalar  , $did_not_pass,
+        \$scalar , $not_allowed_type,
+        $arrayref, $not_allowed_type,
+        $hashref , $not_allowed_type,
+        $coderef , $not_allowed_type,
+        $glob    , $not_allowed_type,
+        $globref , $not_allowed_type,
+      ],
+    },
   );
 
   my %same = (
 
     # SCALAR checks
-    exec => [qw(
+    applyconfig => [qw(
 
-      applyconfig applyconfig_map config hostname name netif_add netif_del
-      ostemplate pci_add pci_del private root searchdomain
+      applyconfig_map config hostname name netif_add netif_del ostemplate
+      pci_add pci_del private root searchdomain
 
     )],
 
-    #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
-    #     robust.  We can pull the data from the global config file to help
-    #     validate this info.
+    # SCALAR | ARRAYREF checks
+    command => [qw( exec script )],
 
     # UNDEF checks
     force => [qw( save wait )],
@@ -190,21 +409,13 @@ my %expected_validate = do {
     # ip checks
     ipadd  => [qw( nameserver )],
 
-    # hard|soft limits (no suffixes)
-    diskinodes => [qw(
-
-      numfile numflock numiptent numothersock numproc numpty numsiginfo
-      numtcpsock
-
-    )],
-
-    # hard|soft limits (with suffixes)
+    # hard|soft limits
     avnumproc => [qw(
 
-      dcachesize dgramrcvbuf diskspace kmemsize lockedpages numfile numflock
-      numiptent numothersock numproc numpty numsiginfo numtcpsock oomguarpages
-      othersockbuf physpages privvmpages shmpages swappages tcprcvbuf tcpsndbuf
-      vmguarpages
+      dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
+      numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
+      oomguarpages othersockbuf physpages privvmpages shmpages swappages
+      tcprcvbuf tcpsndbuf vmguarpages
 
     )],
   );
@@ -220,33 +431,73 @@ my %expected_validate = do {
 
 };
 
-cmp_deeply( %OpenVZ::vzctl::vzctl, %expected_vzctl, 'vzctl hash' );
-cmp_deeply( %OpenVZ::vzctl::validate, %expected_validate, 'validate hash' );
+my @bad_ctids = qw( invalid_ctid invalid_name );
 
-# see t/bin/vzlist for info on how to handle ctid testing
+my %invalid_regex = (
 
-throws_ok { status( ctid => 'invalid_ctid' ) } qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/, 'caught invalid ctid';
-throws_ok { status( ctid => 'invalid_name' ) } qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./, 'caught invalid name';
+  invalid_ctid => qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/,
+  invalid_name => qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./,
 
-my $test_ctid = 101;
-my $test_name = 'name';
+);
 
-my @valid_ctid_name = status( ctid => "$test_ctid,$test_name" );
+#  badparm      => qr/The following parameter was passed .* but was not listed in the validation options: badparm/,
+#  badflag      => qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/,
 
-is( $OpenVZ::vzctl::global{ 'ctid' }, $test_ctid, 'global ctid set correctly');
-is( $OpenVZ::vzctl::global{ 'name' }, $test_name, 'global name set correctly');
-is( $valid_ctid_name[0], "vzctl status $test_ctid", "command called correctly ($valid_ctid_name[0])" );
-is( $valid_ctid_name[1], '', 'nothing in stderr' );
-is( $valid_ctid_name[2], 0, 'syserr is 0' );
-like( $valid_ctid_name[3], qr/^\d+(\.\d+)?$/, "time was reported ($valid_ctid_name[3] s)" );
+my @global_flags = ( '', 'quiet', 'verbose' );
 
-my $test2_ctid = 102;
+#my $invalid_ctid_rx = qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/;
+#my $invalid_name_rx = qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./;
+#my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
+#my $badflag_rx      = qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/;
 
-my @valid_ctid = start( ctid => $test2_ctid );
+for my $cmd ( sort keys %vzctl ) {
+  for my $p ( @{ $vzctl{ $cmd } } ) {
 
-is( $OpenVZ::vzctl::global{ 'ctid' }, $test2_ctid, 'global ctid set correctly');
-is( $OpenVZ::vzctl::global{ 'name' }, undef, 'global name set correctly');
-is( $valid_ctid[0], "vzctl start $test2_ctid", "command called correctly ($valid_ctid[0])" );
-is( $valid_ctid[1], '', 'nothing in stderr' );
-is( $valid_ctid[2], 0, 'syserr is 0' );
-like( $valid_ctid[3], qr/^\d+(\.\d+)?$/, "time was reported ($valid_ctid[3] s)" );
+    ( my $parm = $p ) =~ s/^\[(.*?)\]$/$1/;
+
+    for my $ctid ( @bad_ctids ) {
+
+      my %invalid_hash = ( ctid => $ctid );
+
+      my $bad_regex = $invalid_regex{ $ctid };
+
+      for my $flag ( @global_flags ) {
+
+        $invalid_hash{ flag } = $flag
+          if $flag ne '';
+
+        my $info = sprintf '%s %s%s --%s ... -- caught %s',
+          $cmd, ($flag?"$flag ":''), $ctid, $parm, $ctid;
+
+        no strict 'refs';
+        throws_ok { $cmd->( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
+
+      } # end my $flag ( @global_flags )
+    } # end for my $ctid ( @bad_ctids )
+
+    my $ctid = int 100 + rand( 100 );
+    my $name = join '', map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
+    my $test = "$ctid,$name";
+
+    my $bad_values = $check{ $parm }{ bad };
+
+    for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 ) {
+
+      my %bad_hash = ( ctid => $ctid, $parm => $bad_values->[ $ix ] );
+
+      for my $flag ( @global_flags ) {
+
+        $bad_hash{ flag } = $flag
+          if $flag ne '';
+
+        no warnings 'uninitialized';
+        my $info = sprintf '%s %s%s --%s %s -- caught bad value',
+          $cmd, ($flag?"$flag ":''), $test, $parm, $bad_values->[ $ix ];
+
+        no strict 'refs';
+        throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix+1 ], $info;
+
+      } # end for my $flag ( @global_flags )
+    } # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
+  } # end for my $p ( @{ $vzctl{ $cmd } } )
+} # end for my $cmd ( sort keys %vzctl )

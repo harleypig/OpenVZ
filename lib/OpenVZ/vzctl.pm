@@ -612,40 +612,48 @@ my %validate = do {
 
   );
 
-  my $features_names = join '|', qw( sysfs nfs sit ipip ppp ipgre bridge nfsd);
+  my $features_names = join '|', qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
 
   my %hash = (
 
-    applyconfig => { type      => SCALAR },
-    avnumproc   => { regex     => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
-    bootorder   => { regex     => qr/^\d+$/ },
-    capability  => { regex     => qr/^(?:$cap_names):(?:on|off)$/i },
-    cpumask     => { regex     => qr/^\d+(?:[,-]\d+)*|all$/i },
-    ctid        => { callbacks => { 'validate ctid' => \&_validate_ctid } },
-    devices     => { regex     => qr/^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/i },
-    features    => { regex     => qr/^(?:$features_names):(?:on|off)$/i },
-    flag        => { regex     => qr/^quiet|verbose|version$/i },
-    force       => { type      => UNDEF },
-    ioprio      => { regex     => qr/^[0-7]$/ },
-    onboot      => { regex     => qr/^yes|no$/i },
-    setmode     => { regex     => qr/^restart|ignore/i },
-    userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
+    avnumproc   => { type => SCALAR, regex => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
+    bootorder   => { type => SCALAR, regex => qr/^\d+$/ },
+    capability  => { type => SCALAR, regex => qr/^(?:$cap_names):(?:on|off)$/i },
+    cpumask     => { type => SCALAR, regex => qr/^\d+(?:[,-]\d+)*|all$/i },
+    devices     => { type => SCALAR, regex => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i },
+    features    => { type => SCALAR, regex => qr/^(?:$features_names):(?:on|off)$/i },
+    flag        => { type => SCALAR, regex => qr/^quiet|verbose/i },
+    ioprio      => { type => SCALAR, regex => qr/^[0-7]$/ },
+    onboot      => { type => SCALAR, regex => qr/^yes|no$/i },
+    setmode     => { type => SCALAR, regex => qr/^restart|ignore/i },
+    userpasswd  => { type => SCALAR, regex => qr/^(?:\w+):(?:\w+)$/ },
+
+    applyconfig => { type => SCALAR, callbacks => { 'do not want empty strings' => sub { return $_[0] ne '' }}},
+    ctid        => { type => SCALAR, callbacks => { 'validate ctid' => \&_validate_ctid } },
+
+    force       => { type => UNDEF },
 
     command => {
-      type      => SCALAR | ARRAYREF, # This handles the type check for us.
+      type      => SCALAR | ARRAYREF,
       callbacks => { 'do not want empty values' => sub {
 
         return ref $_[0] eq '' ? do { $_[0] ne '' }
-                               : do { $_[0]->[0] eq '' };
+                               : do { defined $_[0]->[0] && $_[0]->[0] ne '' };
 
       }},
     },
 
     ipadd => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      type => SCALAR | ARRAYREF,
       callbacks => { 'do these look like valid ip(s)?' => sub {
 
         my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        # I'd rather not do
+        no warnings 'uninitialized';
+        # but
+        # my @bad_ips = grep { defined    && ! /^$RE{net}{IPv4}$/ } @ips;
+        # my @bad_ips = grep { defined $_ && ! /^$RE{net}{IPv4}$/ } @ips;
+        # don't work and I'm not sure what else to try.
         my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
         return ! @bad_ips; # return 1 if there are no bad ips, undef otherwise.
 
@@ -657,10 +665,11 @@ my %validate = do {
     }}},
 
     ipdel => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      type => SCALAR | ARRAYREF,
       callbacks => { 'do these look like valid ip(s)?' => sub {
 
         my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        no warnings 'uninitialized'; # see notes for ipadd
         my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
         return 1 if grep { /^all$/i } @bad_ips;
         return ! @bad_ips;
@@ -670,7 +679,7 @@ my %validate = do {
     }}},
 
     iptables => {
-      type => SCALAR | ARRAYREF, # This handles the type check for us.
+      type => SCALAR | ARRAYREF,
       callbacks => { 'see manpage for list of valid iptables names' => sub {
 
         my @names;
@@ -687,6 +696,7 @@ my %validate = do {
 
         }
 
+        no warnings 'uninitialized'; # see notes for ipadd
         my @bad_names = grep { ! /^$iptables_names$/ } @names;
         return ! @bad_names;
 
@@ -695,19 +705,23 @@ my %validate = do {
     }}},
 
     create_dumpfile => {
-      type      => SCALAR, # This handles the type check for us.
+      type      => SCALAR,
       callbacks => { 'does it look like a valid filename?' => sub {
+        return if $_[0] eq '';
         my $file = sprintf 'file://localhost/%s', +shift;
         $file =~ /^$RE{URI}{file}$/;
     }}},
 
     restore_dumpfile => {
-      type      => SCALAR, # This handles the type check for us.
+      type      => SCALAR,
       callbacks => { 'does file exist?' => sub { -e( +shift ) } },
     },
 
-    devnodes => { callbacks => { 'setting access to devnode' => sub {
+    devnodes => {
+      type      => SCALAR,
+      callbacks => { 'setting access to devnode' => sub {
 
+      return if ! defined $_[0] || $_[0] eq '';
       return 1 if $_[0] eq 'none';
       ( my $device = $_[0] ) =~ s/^(.*?):r?w?q?$/$1/;
       $device = "/dev/$device";
@@ -839,11 +853,13 @@ a specific command unless you know what you're doing.
 
 =cut
 
+{ # Hide subcommands regex
+
+my $subcommands = join '|', keys %vzctl;
+
 sub vzctl {
 
   my $spec = subcommand_specs(qw( flag ctid ));
-
-  my $subcommands = join '|', keys %vzctl;
   $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
 
   my %arg = validate_with(
@@ -900,6 +916,7 @@ sub vzctl {
   return execute( \%hash );
 
 }
+} # End hiding
 
 =function subcommand_specs
 
