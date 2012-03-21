@@ -3,10 +3,12 @@
 use strict;
 use warnings;
 
-use Test::Most tests => 2231;
-use Test::NoWarnings;
+use Test::Most tests => 3278;
+#use Test::NoWarnings;
 
 use Try::Tiny;
+
+use Carp;
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
@@ -216,8 +218,9 @@ my %check = do {
     },
 
     force => {
-      good => [ undef, '' ],
+      good => [ undef ],
       bad  => [
+        $scalar , $not_allowed_type,
         \$scalar, $not_allowed_type,
         $hashref, $not_allowed_type,
         $coderef, $not_allowed_type,
@@ -297,6 +300,7 @@ my %check = do {
         $globref   , $not_allowed_type,
         '300.1.2.3', $did_not_pass,
         [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
+        [qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
       ],
     },
 
@@ -314,6 +318,7 @@ my %check = do {
         $globref   , $not_allowed_type,
         '300.1.2.3', $did_not_pass,
         [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
+        [qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
       ],
     },
 
@@ -451,6 +456,8 @@ for my $cmd ( sort keys %vzctl ) {
 
     ( my $parm = $p ) =~ s/^\[(.*?)\]$/$1/;
 
+    note( "Testing $cmd $parm ..." );
+
     for my $ctid ( @bad_ctids ) {
 
       my %invalid_hash = ( ctid => $ctid );
@@ -475,13 +482,13 @@ for my $cmd ( sort keys %vzctl ) {
     my $name = join '', map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
     my $test = "$ctid,$name";
 
-    my $bad_values = $check{ $parm }{ bad };
+    for my $flag ( @global_flags ) {
 
-    for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 ) {
+      my $bad_values = $check{ $parm }{ bad };
 
-      my %bad_hash = ( ctid => $ctid, $parm => $bad_values->[ $ix ] );
+      for ( my $ix = 0 ; $ix < @$bad_values ; $ix += 2 ) {
 
-      for my $flag ( @global_flags ) {
+        my %bad_hash = ( ctid => $ctid, $parm => $bad_values->[ $ix ] );
 
         $bad_hash{ flag } = $flag
           if $flag ne '';
@@ -493,7 +500,55 @@ for my $cmd ( sort keys %vzctl ) {
         no strict 'refs';
         throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix+1 ], $info;
 
-      } # end for my $flag ( @global_flags )
-    } # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
+      } # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
+
+      my $good_values = $check{ $parm }{ good };
+
+      for ( my $ix = 0 ; $ix < @$good_values ; $ix++ ) {
+
+        my $expected_parm;
+
+        my $parm_ref = ref $good_values->[ $ix ];
+
+        if ( $parm_ref eq 'ARRAY' ) {
+
+          $expected_parm = join ' ', map { "--$parm $_" } @{ $good_values->[ $ix ] };
+
+        } elsif ( $parm_ref eq '' ) {
+
+#          if ( $good_values->[ $ix ] eq undef ) {
+#
+#            $expected_parm = "--$parm";
+#
+#          } else {
+
+            $expected_parm = sprintf '--%s %s', $parm, $good_values->[ $ix ];
+
+#          }
+
+        } else {
+
+          carp "Expecting scalar or arrayref for good test values";
+
+        }
+
+        my $expected = sprintf 'vzctl %s%s %s %s',
+          ($flag?"--$flag ":''), $cmd, $ctid, $expected_parm;
+
+        my %good_hash = ( ctid => $test, $parm => $good_values->[ $ix ] );
+
+        $good_hash{ flag } = $flag
+          if $flag ne '';
+
+        my @result;
+        { no strict 'refs'; @result = $cmd->( \%good_hash ) };
+
+        is( $result[0], $expected, "got $expected" );
+        is( $result[1], '', 'got empty stderr' );
+        is( $result[2], 0, 'syserr was 0' );
+        like( $result[3], qr/^\d+(?:.\d+)?$/, 'time was reported' );
+
+      } # end for ( my $ix = 0, $ix < @$good_values ; $ix++ )
+    } # end for my $flag ( @global_flags )
   } # end for my $p ( @{ $vzctl{ $cmd } } )
 } # end for my $cmd ( sort keys %vzctl )

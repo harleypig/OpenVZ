@@ -645,7 +645,8 @@ my %validate = do {
       type => SCALAR | ARRAYREF,
       callbacks => { 'do these look like valid ip(s)?' => sub {
 
-        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
+        return unless @ips;
         # I'd rather not do
         no warnings 'uninitialized';
         # but
@@ -666,7 +667,8 @@ my %validate = do {
       type => SCALAR | ARRAYREF,
       callbacks => { 'do these look like valid ip(s)?' => sub {
 
-        my @ips = ref $_[0] eq 'ARRAY' ? @$_[0] : $_[0];
+        my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
+        return unless @ips;
         no warnings 'uninitialized'; # see notes for ipadd
         my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
         return 1 if grep { /^all$/i } @bad_ips;
@@ -1091,9 +1093,6 @@ sub _generate_subcommand {
   my $spec = subcommand_specs( $name );
 
   my %sub_spec;
-
-  $sub_spec{ allow_extra } = 1
-    if delete $spec->{ allow_extra };
 
   $sub_spec{ spec } = $spec;
 
