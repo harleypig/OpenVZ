@@ -154,7 +154,7 @@ C<exec> expects a hash reference with the following keys and values.
 
 See C<chkpnt> for details.
 
-=item command
+=item command (required)
 
 Expects a scalar or a reference to an array but doesn't check for the validity
 of the command.
@@ -173,7 +173,7 @@ C<exec2> expects a hash reference with the following keys and values.
 
 See C<chkpnt> for details.
 
-=item command
+=item command (required)
 
 Expects a scalar or a reference to an array but doesn't check for the validity
 of the command.
@@ -280,7 +280,7 @@ C<runscript> expects a hash reference with the following keys and values.
 
 See C<chkpnt> for details.
 
-=item script
+=item script (required)
 
 Expects a scalar or a reference to an array but doesn't check for the validity
 of the script.
@@ -954,12 +954,6 @@ would yield
 
 If a parameter is surrounded with square brackets ( [] ) the parameter is made
 optional.
-
-In order to automate as much of this as possible, there is a special case for
-the 'allow_extra' option to C<validate_with>.  If the returned hash has a key
-named 'allow_extra', you should set C<allow_extra =&gt; 1> in your call to
-validate_with.  Or just delete it if you want to override it for whatever
-reason.
 
 =cut
 
