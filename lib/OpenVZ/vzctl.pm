@@ -473,8 +473,6 @@ the value.
 
 =back
 
-=back
-
 See the C<vzctl> manpage for information on the C<set> command.
 
 =vzctl_cmd start
