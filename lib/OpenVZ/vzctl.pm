@@ -44,7 +44,7 @@ use Params::Validate qw( :all );
 use Regexp::Common qw( URI net );
 use Sub::Exporter;
 
-our %global;
+our ( %global, @exports );
 
 # VERSION
 
@@ -588,35 +588,81 @@ my %vzctl = (
 
 );
 
+=function known_commands
+
+Returns a list of known vzctl commands
+
+=cut
+
+push @exports, 'known_commands';
+
+sub known_commands { keys %vzctl }
+
+=function capabilities
+
+Returns a list of known capabilities for the C<vzctl set capability> option.
+
+=cut
+
+my @capabilities = qw(
+
+  chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+  lease linux_immutable mknod net_admin net_bind_service net_broadcast
+  net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+  sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+  sys_tty_config ve_admin
+
+);
+
+push @exports, 'capabilities';
+
+sub capabilities { wantarray ? @capabilities : \@capabilities }
+
+=function iptables_modules
+
+Returns a list of known iptables modules for the C<vzctl set iptables> option.
+
+=cut
+
+my @iptables_modules = qw(
+
+  ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+  iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+  ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+  ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+  ipt_ttl xt_mac
+
+);
+
+push @exports, 'iptables_modules';
+
+sub iptables_modules { wantarray ? @iptables_modules : \@iptables_modules }
+
+=function features
+
+Returns a list of known features for the C<vzctl set features> option.
+
+=cut
+
+my @features = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
+
+push @exports, 'features';
+
+sub features { wantarray ? @iptables_modules : \@iptables_modules }
+
+####################################
+
 my %validate = do {
 
-  my $cap_names = join '|', qw(
-
-    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-    lease linux_immutable mknod net_admin net_bind_service net_broadcast
-    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-    sys_tty_config ve_admin
-
-  );
-
-  my $iptables_names = join '|', qw(
-
-    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-    ipt_ttl xt_mac
-
-  );
-
-  my $features_names = join '|', qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
+  my $capability_names = join '|', @capabilities;
+  my $iptables_names   = join '|', @iptables_modules;
+  my $features_names   = join '|', @features;
 
   my %hash = (
 
     avnumproc   => { type => SCALAR, regex => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
     bootorder   => { type => SCALAR, regex => qr/^\d+$/ },
-    capability  => { type => SCALAR, regex => qr/^(?:$cap_names):(?:on|off)$/i },
+    capability  => { type => SCALAR, regex => qr/^(?:$capability_names):(?:on|off)$/i },
     cpumask     => { type => SCALAR, regex => qr/^\d+(?:[,-]\d+)*|all$/i },
     devices     => { type => SCALAR, regex => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i },
     features    => { type => SCALAR, regex => qr/^(?:$features_names):(?:on|off)$/i },
@@ -682,6 +728,8 @@ my %validate = do {
       type => SCALAR | ARRAYREF,
       callbacks => { 'see manpage for list of valid iptables names' => sub {
 
+$DB::single = 1;
+
         my @names;
 
         if ( ref $_[0] eq 'ARRAY' ) {
@@ -691,7 +739,7 @@ my %validate = do {
         } else {
 
           my $names = shift;
-          return unless $names =~ s/^['"](.*?)['"]$/$1/;
+          #return unless $names =~ s/^['"](.*?)['"]$/$1/;
           @names = split /\s+/, $names;
 
         }
@@ -809,6 +857,8 @@ passed on the command line.
 
 =cut
 
+push @exports, 'execute';
+
 sub execute {
 
   my %arg = validate( @_, {
@@ -855,7 +905,10 @@ a specific command unless you know what you're doing.
 
 { # Hide subcommands regex
 
-my $subcommands = join '|', keys %vzctl;
+#my $subcommands = join '|', keys %vzctl;
+my $subcommands = join '|', known_commands();
+
+push @exports, 'vzctl';
 
 sub vzctl {
 
@@ -902,7 +955,7 @@ sub vzctl {
       push @params, $arg_name;
 
       push @params, $arg{ $p }
-        if $arg{ $p } ne '';
+        if defined $arg{ $p } && $arg{ $p } ne '';
 
     } else {
 
@@ -958,6 +1011,8 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made
 optional.
 
 =cut
+
+push @exports, 'subcommand_specs';
 
 sub subcommand_specs {
 
@@ -1108,8 +1163,6 @@ sub _generate_subcommand {
 
 ############################################################################
 # Setup exporter
-
-my @exports = qw( execute vzctl subcommand_specs );
 
 push @exports, ( $_ => \&_generate_subcommand )
   for keys %vzctl;

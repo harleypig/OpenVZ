@@ -9,53 +9,11 @@ use Test::Most tests => 3278;
 use Try::Tiny;
 
 use Carp;
+use Data::Dump 'dump';
 
 $ENV{ PATH } = "t/bin:$ENV{PATH}"; # run our test versions of commands
 
 BEGIN { use_ok( 'OpenVZ::vzctl', ':all' ) }
-
-# Copy this hash from OpenVZ::vzctl
-
-my %vzctl = (
-
-    destroy   => [],
-    mount     => [],
-    quotainit => [],
-    quotaoff  => [],
-    quotaon   => [],
-    restart   => [],
-    status    => [],
-    stop      => [],
-    umount    => [],
-
-    exec      => [qw( command )],
-    exec2     => [qw( command )],
-    runscript => [qw( script )],
-
-    start     => [qw( [force] [wait] )],
-    enter     => [qw( [exec] )],
-
-    chkpnt    => [qw( [create_dumpfile] )],
-    restore   => [qw( [restore_dumpfile] )],
-
-    create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
-
-    set       => [qw(
-
-      [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
-      [cpulimit] [cpumask] [cpus] [cpuunits] [dcachesize] [devices] [devnodes]
-      [dgramrcvbuf] [disabled] [diskinodes] [diskspace] [features] [force]
-      [hostname] [ioprio] [ipadd] [ipdel] [iptables] [kmemsize] [lockedpages]
-      [name] [nameserver] [netif_add] [netif_del] [noatime] [numfile]
-      [numflock] [numiptent] [numothersock] [numproc] [numpty] [numsiginfo]
-      [numtcpsock] [onboot] [oomguarpages] [othersockbuf] [pci_add] [pci_del]
-      [physpages] [privvmpages] [quotatime] [quotaugidlimit] [save]
-      [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
-      [userpasswd] [vmguarpages]
-
-   )],
-
-);
 
 my %check = do {
 
@@ -71,36 +29,17 @@ my %check = do {
   my $not_allowed_type = qr/not one of the allowed types/;
   my $did_not_pass = qr/did not pass/;
 
-  my @cap_names = qw(
-
-    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-    lease linux_immutable mknod net_admin net_bind_service net_broadcast
-    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-    sys_tty_config ve_admin
-
-  );
-
+  my @cap_names = capabilities();
   my @good_cap_names = map { ( "$_:on", "$_:off" ) } @cap_names;
   my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
   push @bad_cap_names, 'justallaroundbad', $did_not_pass;
 
-  my @features_names = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
-
+  my @features_names = features();
   my @good_features_names = map { ( "$_:on", "$_:off" ) } @features_names;
-  my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) }
-  @features_names;
+  my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) } @features_names;
   push @bad_features_names, 'justallaroundbad', $did_not_pass;
 
-  my @iptables_names = qw(
-
-    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-    ipt_ttl xt_mac
-
-  );
+  my @iptables_names = iptables_modules();
 
   my %hash = (
 
@@ -322,7 +261,6 @@ my %check = do {
       ],
     },
 
-#    iptables => {
     iptables => {
       good => \@iptables_names,
       bad  => [
@@ -428,11 +366,14 @@ my %check = do {
 
   }
 
+  $hash{ 'test' } = 'BOO!';
+
   %hash;
 
 };
 
 my @bad_ctids = qw( invalid_ctid invalid_name );
+my @global_flags = ( '', 'quiet', 'verbose' );
 
 my %invalid_regex = (
 
@@ -441,22 +382,14 @@ my %invalid_regex = (
 
 );
 
-#  badparm      => qr/The following parameter was passed .* but was not listed in the validation options: badparm/,
-#  badflag      => qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/,
+# XXX: my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
 
-my @global_flags = ( '', 'quiet', 'verbose' );
+for my $cmd ( sort( known_commands() ) ) {
+  for my $parm ( sort keys %{ subcommand_specs( $cmd ) } ) {
 
-#my $invalid_ctid_rx = qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/;
-#my $invalid_name_rx = qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./;
-#my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
-#my $badflag_rx      = qr/The 'flag' parameter \("badflag"\) to .* did not pass regex check/;
+    next if $parm =~ /^ctid|flag$/; # these are tested for every time
 
-for my $cmd ( sort keys %vzctl ) {
-  for my $p ( @{ $vzctl{ $cmd } } ) {
-
-    ( my $parm = $p ) =~ s/^\[(.*?)\]$/$1/;
-
-    note( "Testing $cmd $parm ..." );
+    note( "Testing $cmd $parm bad ctids" );
 
     for my $ctid ( @bad_ctids ) {
 
@@ -470,7 +403,7 @@ for my $cmd ( sort keys %vzctl ) {
           if $flag ne '';
 
         my $info = sprintf '%s %s%s --%s ... -- caught %s',
-          $cmd, ($flag?"$flag ":''), $ctid, $parm, $ctid;
+          $cmd, ($flag?"--$flag ":''), $ctid, $parm, $ctid;
 
         no strict 'refs';
         throws_ok { $cmd->( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
@@ -484,6 +417,8 @@ for my $cmd ( sort keys %vzctl ) {
 
     for my $flag ( @global_flags ) {
 
+      note( "Testing $cmd $parm bad values" );
+
       my $bad_values = $check{ $parm }{ bad };
 
       for ( my $ix = 0 ; $ix < @$bad_values ; $ix += 2 ) {
@@ -495,12 +430,14 @@ for my $cmd ( sort keys %vzctl ) {
 
         no warnings 'uninitialized';
         my $info = sprintf '%s %s%s --%s %s -- caught bad value',
-          $cmd, ($flag?"$flag ":''), $test, $parm, $bad_values->[ $ix ];
+          $cmd, ($flag?"$flag ":''), $ctid, $parm, $bad_values->[ $ix ];
 
         no strict 'refs';
         throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix+1 ], $info;
 
       } # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
+
+      note( "Testing $cmd $parm good values" );
 
       my $good_values = $check{ $parm }{ good };
 
@@ -508,23 +445,23 @@ for my $cmd ( sort keys %vzctl ) {
 
         my $expected_parm;
 
-        my $parm_ref = ref $good_values->[ $ix ];
+        my $value_ref = ref $good_values->[ $ix ];
 
-        if ( $parm_ref eq 'ARRAY' ) {
+        if ( $value_ref eq 'ARRAY' ) {
 
           $expected_parm = join ' ', map { "--$parm $_" } @{ $good_values->[ $ix ] };
 
-        } elsif ( $parm_ref eq '' ) {
+        } elsif ( $value_ref eq '' ) {
 
-#          if ( $good_values->[ $ix ] eq undef ) {
-#
-#            $expected_parm = "--$parm";
-#
-#          } else {
+          if ( defined $good_values->[ $ix ] ) {
 
             $expected_parm = sprintf '--%s %s', $parm, $good_values->[ $ix ];
 
-#          }
+          } else {
+
+            $expected_parm = "--$parm";
+
+          }
 
         } else {
 
@@ -549,6 +486,15 @@ for my $cmd ( sort keys %vzctl ) {
         like( $result[3], qr/^\d+(?:.\d+)?$/, 'time was reported' );
 
       } # end for ( my $ix = 0, $ix < @$good_values ; $ix++ )
-    } # end for my $flag ( @global_flags )
-  } # end for my $p ( @{ $vzctl{ $cmd } } )
-} # end for my $cmd ( sort keys %vzctl )
+    } # end for my $flag ...
+
+    delete $check{ $parm }
+      unless $parm =~ /^command|force$/; # these appear in multiple commands
+
+  } # end for my $parm ...
+} # end for my $cmd ...
+
+delete $check{ $_ }
+  for qw( command force );
+
+cmp_deeply( \%check, {}, 'checked all options' );
