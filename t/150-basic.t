@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::Most tests => 7008;
+use Test::Most tests => 7011;
 use Test::NoWarnings;
 
 use Try::Tiny;
@@ -30,17 +30,42 @@ my %check = do {
     my $did_not_pass     = qr/did not pass/;
 
     my @cap_names      = capabilities();
+
+    cmp_bag( \@cap_names, [qw(
+
+      chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+      lease linux_immutable mknod net_admin net_bind_service net_broadcast
+      net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+      sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+      sys_tty_config ve_admin
+
+    )], 'got expected capablity names' );
+
     my @good_cap_names = map { ( "$_:on", "$_:off" ) } @cap_names;
     my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
     push @bad_cap_names, 'justallaroundbad', $did_not_pass;
 
     my @features_names = features();
+
+    cmp_bag( \@features_names, [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)], 'got expected features names' );
+
     my @good_features_names = map { ( "$_:on", "$_:off" ) } @features_names;
-    my @bad_features_names
-        = map { ( "$_:bad", $did_not_pass ) } @features_names;
+    my @bad_features_names = map { ( "$_:bad", $did_not_pass ) } @features_names;
     push @bad_features_names, 'justallaroundbad', $did_not_pass;
 
-    my @iptables_names = map { ( "$_:on", "$_:off" ) } iptables_modules();
+    my @iptables_modules = iptables_modules();
+
+    cmp_bag( \@iptables_modules, [qw(
+
+      ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+      iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+      ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+      ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+      ipt_ttl xt_mac
+
+    )], 'got expected iptables modules' );
+
+    my @iptables_names = map { ( "$_:on", "$_:off" ) } @iptables_modules;
 
     my %hash = (
 
