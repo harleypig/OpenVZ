@@ -648,7 +648,7 @@ my @features = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
 
 push @exports, 'features';
 
-sub features { wantarray ? @iptables_modules : \@iptables_modules }
+sub features { wantarray ? @features : \@features }
 
 ####################################
 
@@ -728,24 +728,23 @@ my %validate = do {
       type => SCALAR | ARRAYREF,
       callbacks => { 'see manpage for list of valid iptables names' => sub {
 
-$DB::single = 1;
-
         my @names;
 
         if ( ref $_[0] eq 'ARRAY' ) {
 
-          @names = @$_[0];
+          @names = @{ $_[0] };
+          return if @names == 0;
 
         } else {
 
+          return if ! defined $_[0] || $_[0] eq '';
           my $names = shift;
-          #return unless $names =~ s/^['"](.*?)['"]$/$1/;
           @names = split /\s+/, $names;
 
         }
 
         no warnings 'uninitialized'; # see notes for ipadd
-        my @bad_names = grep { ! /^$iptables_names$/ } @names;
+        my @bad_names = grep { ! /^(?:$iptables_names):o(?:n|ff)$/ } @names;
         return ! @bad_names;
 
         #NOTE: See ipadd note.
@@ -942,7 +941,7 @@ sub vzctl {
 
   for my $p ( keys %arg ) {
 
-    my $arg_name = "--$p";
+    my $arg_name = $p =~ /^command|script$/ ? '' : "--$p";
     my $ref      = ref $arg{ $p };
 
     if ( $ref eq 'ARRAY' ) {
@@ -963,6 +962,8 @@ sub vzctl {
 
     }
   }
+
+  @params = grep { $_ ne '' } @params;
 
   $hash{ params } = \@params;
 

@@ -3,11 +3,12 @@
 use strict;
 use warnings;
 
-use Test::Most tests => 3278;
-#use Test::NoWarnings;
+use Test::Most tests => 7008;
+use Test::NoWarnings;
 
 use Try::Tiny;
 
+use Algorithm::Combinatorics 'combinations';
 use Carp;
 use Data::Dump 'dump';
 
@@ -39,7 +40,7 @@ my %check = do {
   my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) } @features_names;
   push @bad_features_names, 'justallaroundbad', $did_not_pass;
 
-  my @iptables_names = iptables_modules();
+  my @iptables_names = map { ( "$_:on", "$_:off" ) } iptables_modules();
 
   my %hash = (
 
@@ -366,8 +367,6 @@ my %check = do {
 
   }
 
-  $hash{ 'test' } = 'BOO!';
-
   %hash;
 
 };
@@ -449,13 +448,29 @@ for my $cmd ( sort( known_commands() ) ) {
 
         if ( $value_ref eq 'ARRAY' ) {
 
-          $expected_parm = join ' ', map { "--$parm $_" } @{ $good_values->[ $ix ] };
+          if ( $parm =~ /^command|script$/ ) {
+
+            $expected_parm = join ' ', @{ $good_values->[ $ix ] };
+
+          } else {
+
+            $expected_parm = join ' ', map { "--$parm $_" } @{ $good_values->[ $ix ] };
+
+          }
 
         } elsif ( $value_ref eq '' ) {
 
           if ( defined $good_values->[ $ix ] ) {
 
-            $expected_parm = sprintf '--%s %s', $parm, $good_values->[ $ix ];
+            if ( $parm =~ /^command|script$/ ) {
+
+              $expected_parm = $good_values->[ $ix ];
+
+            } else {
+
+              $expected_parm = sprintf '--%s %s', $parm, $good_values->[ $ix ];
+
+            }
 
           } else {
 
@@ -488,13 +503,14 @@ for my $cmd ( sort( known_commands() ) ) {
       } # end for ( my $ix = 0, $ix < @$good_values ; $ix++ )
     } # end for my $flag ...
 
+    note( "Deleting $parm" );
     delete $check{ $parm }
-      unless $parm =~ /^command|force$/; # these appear in multiple commands
+      unless $parm =~ /^command|force|hostname|ipadd$/; # these appear in multiple commands
 
   } # end for my $parm ...
 } # end for my $cmd ...
 
 delete $check{ $_ }
-  for qw( command force );
+  for qw( command force hostname ipadd );
 
 cmp_deeply( \%check, {}, 'checked all options' );
