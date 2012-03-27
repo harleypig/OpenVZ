@@ -4,8 +4,7 @@ package OpenVZ::vzctl;
 
 #XXX: Do we need to load and parse the VZ system config file?
 #XXX: Need to abstract out the common code into a top level OpenVZ module.
-#XXX: Need to handle version specially, create a sub for it and remove it from
-#     the validate hash for 'flag'.
+#XXX: Need to handle version call
 #XXX: Need to use 'on_fail' option for validate_with for smoother error
 #     handling.
 
@@ -918,11 +917,7 @@ C<vzctl> is used to call C<execute> with vzctl as the specific command.
 C<vzctl> expects a hashref with the required keys C<subcommand> and C<ctid>
 and does B<NOT> check the validity of any remaining keys.
 
-A C<flag> key is optional and accepts C<quiet>, C<verbose> and C<version>.
-
-If the C<flag> key is set to C<version> then C<vzctl> will ignore all other
-parameters and make the equivalent call of C<vzctl --version>, which returns
-the version number of the installed vzctl command.
+A C<flag> key is optional and accepts C<quiet> and C<verbose>.
 
 An example of a valid call would be
 
@@ -960,13 +955,6 @@ a specific command unless you know what you're doing.
 
         my %hash = ( command => 'vzctl' );
 
-        if ( exists $arg{ flag } && $arg{ flag } eq 'version' ) {
-
-            $hash{ params } = ['--version'];
-            return execute( \%hash );
-
-        }
-
         my @params;
 
         push @params, ( sprintf '--%s', delete $arg{ flag } )
@@ -989,6 +977,9 @@ a specific command unless you know what you're doing.
             } elsif ( $ref eq '' ) {
 
                 push @params, $arg_name;
+
+                # coverage: I don't see a way to test for ! defined $arg{$p}
+                # ... so we'll have to accept a 67% coverage for this one.
 
                 push @params, $arg{ $p }
                     if defined $arg{ $p } && $arg{ $p } ne '';
@@ -1033,7 +1024,7 @@ function.  E.g., the call
 will return a hashref into C<$spec> that looks like
 
   $spec = {
-    flag  => { regex => qr/^quiet|verbose|version$/, optional => 1 },
+    flag  => { regex => qr/^quiet|verbose/, optional => 1 },
     ctid  => { callback => { 'validate ctid' => \&_validate_ctid } },
   }
 
@@ -1141,6 +1132,9 @@ sub _validate_ctid {
     {
         no warnings qw( numeric uninitialized );
 
+        # coverage: we can't check against ! exists, so we'll have to live
+        # with a 71% coverage on this one.
+
         return 1
             if ( exists $global{ ctid } && $global{ ctid } == $check_ctid )
             || ( exists $global{ name } && $global{ name } eq $check_ctid );
@@ -1183,7 +1177,8 @@ sub _generate_subcommand {
     #
     # and creating a sub that only accepts the ipadd parameter.
 
-    my ( $class, $name, $arg, $collection ) = @_;
+    #my ( $class, $name, $arg, $collection ) = @_;
+    my ( undef, $name ) = @_;
     my $spec = subcommand_specs( $name );
 
     my %sub_spec;
