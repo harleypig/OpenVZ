@@ -558,33 +558,30 @@ my %vzctl = (
     status    => [],
     stop      => [],
     umount    => [],
-
     exec      => [qw( command )],
     exec2     => [qw( command )],
     runscript => [qw( script )],
-
     start     => [qw( [force] [wait] )],
     enter     => [qw( [exec] )],
-
     chkpnt    => [qw( [create_dumpfile] )],
     restore   => [qw( [restore_dumpfile] )],
+    create => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
 
-    create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
+    set => [ qw(
 
-    set       => [qw(
+            [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
+            [cpulimit] [cpumask] [cpus] [cpuunits] [dcachesize] [devices] [devnodes]
+            [dgramrcvbuf] [disabled] [diskinodes] [diskspace] [features] [force]
+            [hostname] [ioprio] [ipadd] [ipdel] [iptables] [kmemsize] [lockedpages]
+            [name] [nameserver] [netif_add] [netif_del] [noatime] [numfile]
+            [numflock] [numiptent] [numothersock] [numproc] [numpty] [numsiginfo]
+            [numtcpsock] [onboot] [oomguarpages] [othersockbuf] [pci_add] [pci_del]
+            [physpages] [privvmpages] [quotatime] [quotaugidlimit] [save]
+            [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
+            [userpasswd] [vmguarpages]
 
-      [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
-      [cpulimit] [cpumask] [cpus] [cpuunits] [dcachesize] [devices] [devnodes]
-      [dgramrcvbuf] [disabled] [diskinodes] [diskspace] [features] [force]
-      [hostname] [ioprio] [ipadd] [ipdel] [iptables] [kmemsize] [lockedpages]
-      [name] [nameserver] [netif_add] [netif_del] [noatime] [numfile]
-      [numflock] [numiptent] [numothersock] [numproc] [numpty] [numsiginfo]
-      [numtcpsock] [onboot] [oomguarpages] [othersockbuf] [pci_add] [pci_del]
-      [physpages] [privvmpages] [quotatime] [quotaugidlimit] [save]
-      [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
-      [userpasswd] [vmguarpages]
-
-   )],
+            )
+    ],
 
 );
 
@@ -606,11 +603,11 @@ Returns a list of known capabilities for the C<vzctl set capability> option.
 
 my @capabilities = qw(
 
-  chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-  lease linux_immutable mknod net_admin net_bind_service net_broadcast
-  net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-  sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-  sys_tty_config ve_admin
+    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+    lease linux_immutable mknod net_admin net_bind_service net_broadcast
+    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+    sys_tty_config ve_admin
 
 );
 
@@ -626,11 +623,11 @@ Returns a list of known iptables modules for the C<vzctl set iptables> option.
 
 my @iptables_modules = qw(
 
-  ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-  iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-  ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-  ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-  ipt_ttl xt_mac
+    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+    ipt_ttl xt_mac
 
 );
 
@@ -654,178 +651,220 @@ sub features { wantarray ? @features : \@features }
 
 my %validate = do {
 
-  my $capability_names = join '|', @capabilities;
-  my $iptables_names   = join '|', @iptables_modules;
-  my $features_names   = join '|', @features;
+    my $capability_names = join '|', @capabilities;
+    my $iptables_names   = join '|', @iptables_modules;
+    my $features_names   = join '|', @features;
 
-  my %hash = (
+    my %hash = (
 
-    avnumproc   => { type => SCALAR, regex => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
-    bootorder   => { type => SCALAR, regex => qr/^\d+$/ },
-    capability  => { type => SCALAR, regex => qr/^(?:$capability_names):(?:on|off)$/i },
-    cpumask     => { type => SCALAR, regex => qr/^\d+(?:[,-]\d+)*|all$/i },
-    devices     => { type => SCALAR, regex => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i },
-    features    => { type => SCALAR, regex => qr/^(?:$features_names):(?:on|off)$/i },
-    flag        => { type => SCALAR, regex => qr/^quiet|verbose/i },
-    ioprio      => { type => SCALAR, regex => qr/^[0-7]$/ },
-    onboot      => { type => SCALAR, regex => qr/^yes|no$/i },
-    setmode     => { type => SCALAR, regex => qr/^restart|ignore/i },
-    userpasswd  => { type => SCALAR, regex => qr/^(?:\w+):(?:\w+)$/ },
+        avnumproc =>
+            { type => SCALAR, regex => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
+        features =>
+            { type => SCALAR, regex => qr/^(?:$features_names):(?:on|off)$/i },
 
-    applyconfig => { type => SCALAR, callbacks => { 'do not want empty strings' => sub { return $_[0] ne '' }}},
-    ctid        => { type => SCALAR, callbacks => { 'validate ctid' => \&_validate_ctid } },
+        bootorder  => { type => SCALAR, regex => qr/^\d+$/ },
+        cpumask    => { type => SCALAR, regex => qr/^\d+(?:[,-]\d+)*|all$/i },
+        flag       => { type => SCALAR, regex => qr/^quiet|verbose/i },
+        force      => { type => UNDEF },
+        ioprio     => { type => SCALAR, regex => qr/^[0-7]$/ },
+        onboot     => { type => SCALAR, regex => qr/^yes|no$/i },
+        setmode    => { type => SCALAR, regex => qr/^restart|ignore/i },
+        userpasswd => { type => SCALAR, regex => qr/^(?:\w+):(?:\w+)$/ },
 
-    force       => { type => UNDEF },
+        capability => {
+            type  => SCALAR,
+            regex => qr/^(?:$capability_names):(?:on|off)$/i
+        },
+        devices => {
+            type  => SCALAR,
+            regex => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i
+        },
+        applyconfig => {
+            type      => SCALAR,
+            callbacks => {
+                'do not want empty strings' => sub { return $_[0] ne '' }
+            }
+        },
+        ctid => {
+            type      => SCALAR,
+            callbacks => { 'validate ctid' => \&_validate_ctid }
+        },
 
-    command => {
-      type      => SCALAR | ARRAYREF,
-      callbacks => { 'do not want empty values' => sub {
+        command => {
+            type      => SCALAR | ARRAYREF,
+            callbacks => {
+                'do not want empty values' => sub {
 
-        return ref $_[0] eq '' ? do { $_[0] ne '' }
-                               : do { defined $_[0]->[0] && $_[0]->[0] ne '' };
+                    return ref $_[0] eq ''
+                        ? do { $_[0] ne '' }
+                        : do { defined $_[0]->[0] && $_[0]->[0] ne '' };
 
-      }},
-    },
+                    }
+            },
+        },
 
-    ipadd => {
-      type => SCALAR | ARRAYREF,
-      callbacks => { 'do these look like valid ip(s)?' => sub {
+        ipadd => {
+            type      => SCALAR | ARRAYREF,
+            callbacks => {
+                'do these look like valid ip(s)?' => sub {
 
-        my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
-        return unless @ips;
-        # I'd rather not do
-        no warnings 'uninitialized';
-        # but
-        # my @bad_ips = grep { defined    && ! /^$RE{net}{IPv4}$/ } @ips;
-        # my @bad_ips = grep { defined $_ && ! /^$RE{net}{IPv4}$/ } @ips;
-        # don't work and I'm not sure what else to try.
-        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-        return ! @bad_ips; # return 1 if there are no bad ips, undef otherwise.
+                    my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
+                    return unless @ips;
 
-        #NOTE: I can't find a way to modify the incoming data, and it may not
-        #      be a good idea to do that in any case. Unless, and until, I can
-        #      figure out how to do this the right way this will be an atomic
-        #      operation. It's either all good, or it's not.
+                    # I'd rather not do
+                    no warnings 'uninitialized';
 
-    }}},
+                    # but
+                    # my @bad_ips = grep { defined    && ! /^$RE{net}{IPv4}$/ } @ips;
+                    # my @bad_ips = grep { defined $_ && ! /^$RE{net}{IPv4}$/ } @ips;
+                    # don't work and I'm not sure what else to try.
+                    my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+                    return
+                        ! @bad_ips
+                        ;  # return 1 if there are no bad ips, undef otherwise.
 
-    ipdel => {
-      type => SCALAR | ARRAYREF,
-      callbacks => { 'do these look like valid ip(s)?' => sub {
+                    #NOTE: I can't find a way to modify the incoming data, and it may not
+                    #      be a good idea to do that in any case. Unless, and until, I can
+                    #      figure out how to do this the right way this will be an atomic
+                    #      operation. It's either all good, or it's not.
 
-        my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
-        return unless @ips;
-        no warnings 'uninitialized'; # see notes for ipadd
-        my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-        return 1 if grep { /^all$/i } @bad_ips;
-        return ! @bad_ips;
+                    }
+            }
+        },
 
-        #NOTE: See ipadd note.
+        ipdel => {
+            type      => SCALAR | ARRAYREF,
+            callbacks => {
+                'do these look like valid ip(s)?' => sub {
 
-    }}},
+                    my @ips = ref $_[0] eq 'ARRAY' ? @{ $_[0] } : $_[0];
+                    return unless @ips;
+                    no warnings 'uninitialized';  # see notes for ipadd
+                    my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
+                    return 1 if grep { /^all$/i } @bad_ips;
+                    return ! @bad_ips;
 
-    iptables => {
-      type => SCALAR | ARRAYREF,
-      callbacks => { 'see manpage for list of valid iptables names' => sub {
+                    #NOTE: See ipadd note.
 
-        my @names;
+                    }
+            }
+        },
 
-        if ( ref $_[0] eq 'ARRAY' ) {
+        iptables => {
+            type      => SCALAR | ARRAYREF,
+            callbacks => {
+                'see manpage for list of valid iptables names' => sub {
 
-          @names = @{ $_[0] };
-          return if @names == 0;
+                    my @names;
 
-        } else {
+                    if ( ref $_[0] eq 'ARRAY' ) {
 
-          return if ! defined $_[0] || $_[0] eq '';
-          my $names = shift;
-          @names = split /\s+/, $names;
+                        @names = @{ $_[0] };
+                        return if @names == 0;
 
-        }
+                    } else {
 
-        no warnings 'uninitialized'; # see notes for ipadd
-        my @bad_names = grep { ! /^(?:$iptables_names):o(?:n|ff)$/ } @names;
-        return ! @bad_names;
+                        return if ! defined $_[0] || $_[0] eq '';
+                        my $names = shift;
+                        @names = split /\s+/, $names;
 
-        #NOTE: See ipadd note.
+                    }
 
-    }}},
+                    no warnings 'uninitialized';  # see notes for ipadd
+                    my @bad_names
+                        = grep { ! /^(?:$iptables_names):o(?:n|ff)$/ } @names;
+                    return ! @bad_names;
 
-    create_dumpfile => {
-      type      => SCALAR,
-      callbacks => { 'does it look like a valid filename?' => sub {
-        return if $_[0] eq '';
-        my $file = sprintf 'file://localhost/%s', +shift;
-        $file =~ /^$RE{URI}{file}$/;
-    }}},
+                    #NOTE: See ipadd note.
 
-    restore_dumpfile => {
-      type      => SCALAR,
-      callbacks => { 'does file exist?' => sub { -e( +shift ) } },
-    },
+                    }
+            }
+        },
 
-    devnodes => {
-      type      => SCALAR,
-      callbacks => { 'setting access to devnode' => sub {
+        create_dumpfile => {
+            type      => SCALAR,
+            callbacks => {
+                'does it look like a valid filename?' => sub {
+                    return if $_[0] eq '';
+                    my $file = sprintf 'file://localhost/%s', +shift;
+                    $file =~ /^$RE{URI}{file}$/;
+                    }
+            }
+        },
 
-      return if ! defined $_[0] || $_[0] eq '';
-      return 1 if $_[0] eq 'none';
-      ( my $device = $_[0] ) =~ s/^(.*?):r?w?q?$/$1/;
-      $device = "/dev/$device";
-      return -e $device;
+        restore_dumpfile => {
+            type      => SCALAR,
+            callbacks => {
+                'does file exist?' => sub { -e ( +shift ) }
+            },
+        },
 
-    }}},
+        devnodes => {
+            type      => SCALAR,
+            callbacks => {
+                'setting access to devnode' => sub {
 
-  );
+                    return if ! defined $_[0] || $_[0] eq '';
+                    return 1 if $_[0] eq 'none';
+                    ( my $device = $_[0] ) =~ s/^(.*?):r?w?q?$/$1/;
+                    $device = "/dev/$device";
+                    return -e $device;
 
-  my %same = (
+                    }
+            }
+        },
 
-    # SCALAR checks
-    applyconfig => [qw(
+    );
 
-      applyconfig_map config hostname name netif_add netif_del ostemplate
-      pci_add pci_del private root searchdomain
+    my %same = (
 
-    )],
+        # SCALAR checks
+        applyconfig => [ qw(
 
-    #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
-    #     robust.  We can pull the data from the global config file to help
-    #     validate this info.
+                applyconfig_map config hostname name netif_add netif_del ostemplate
+                pci_add pci_del private root searchdomain
 
-    # SCALAR | ARRAYREF checks
-    command => [qw( exec script )],
+                )
+        ],
 
-    # UNDEF checks
-    force => [qw( save wait )],
+        #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
+        #     robust.  We can pull the data from the global config file to help
+        #     validate this info.
 
-    # INT checks
-    bootorder => [qw( cpulimit cpus cpuunits quotatime quotaugidlimit )],
+        # SCALAR | ARRAYREF checks
+        command => [qw( exec script )],
 
-    # yes or no checks
-    onboot => [qw( disabled noatime )],
+        # UNDEF checks
+        force => [qw( save wait )],
 
-    # ip checks
-    ipadd  => [qw( nameserver )],
+        # INT checks
+        bootorder => [qw( cpulimit cpus cpuunits quotatime quotaugidlimit )],
 
-    # hard|soft limits
-    avnumproc => [qw(
+        # yes or no checks
+        onboot => [qw( disabled noatime )],
 
-      dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
-      numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
-      oomguarpages othersockbuf physpages privvmpages shmpages swappages
-      tcprcvbuf tcpsndbuf vmguarpages
+        # ip checks
+        ipadd => [qw( nameserver )],
 
-    )],
-  );
+        # hard|soft limits
+        avnumproc => [ qw(
 
-  for my $key ( keys %same ) {
+                dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
+                numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
+                oomguarpages othersockbuf physpages privvmpages shmpages swappages
+                tcprcvbuf tcpsndbuf vmguarpages
 
-    $hash{ $_ } = $hash{ $key }
-      for @{ $same{ $key } };
+                )
+        ],
+    );
 
-  }
+    for my $key ( keys %same ) {
 
-  %hash;
+        $hash{ $_ } = $hash{ $key } for @{ $same{ $key } };
+
+    }
+
+    %hash;
 
 };
 
@@ -860,13 +899,15 @@ push @exports, 'execute';
 
 sub execute {
 
-  my %arg = validate( @_, {
-    'command' => { callbacks => { 'find command path' => \&_find_command } },
-    'params'  => { type => ARRAYREF, optional => 1 },
-  });
+    my %arg = validate(
+        @_, {
+            'command' =>
+                { callbacks => { 'find command path' => \&_find_command } },
+            'params' => { type => ARRAYREF, optional => 1 },
+        } );
 
-  # XXX: Need to handle also the case of a hashref
-  return run3([ $global{ path }{ $arg{ command } }, @{ $arg{ params } } ]);
+    # XXX: Need to handle also the case of a hashref
+    return run3( [ $global{ path }{ $arg{ command } }, @{ $arg{ params } } ] );
 
 }
 
@@ -902,75 +943,71 @@ a specific command unless you know what you're doing.
 
 =cut
 
-{ # Hide subcommands regex
+{  # Hide subcommands regex
 
-#my $subcommands = join '|', keys %vzctl;
-my $subcommands = join '|', known_commands();
+    #my $subcommands = join '|', keys %vzctl;
+    my $subcommands = join '|', known_commands();
 
-push @exports, 'vzctl';
+    push @exports, 'vzctl';
 
-sub vzctl {
+    sub vzctl {
 
-  my $spec = subcommand_specs(qw( flag ctid ));
-  $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
+        my $spec = subcommand_specs( qw( flag ctid ) );
+        $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
 
-  my %arg = validate_with(
-    params => @_,
-    spec   => $spec,
-    allow_extra => 1,
-  );
+            my %arg
+            = validate_with( params => @_, spec => $spec, allow_extra => 1, );
 
-  my %hash = ( command => 'vzctl' );
+        my %hash = ( command => 'vzctl' );
 
-  if ( exists $arg{ flag } && $arg{ flag } eq 'version' ) {
+        if ( exists $arg{ flag } && $arg{ flag } eq 'version' ) {
 
-    $hash{ params } = [ '--version' ];
-    return execute( \%hash );
+            $hash{ params } = ['--version'];
+            return execute( \%hash );
 
-  }
+        }
 
-  my @params;
+        my @params;
 
-  push @params, ( sprintf '--%s', delete $arg{ flag } )
-    if exists $arg{ flag };
+        push @params, ( sprintf '--%s', delete $arg{ flag } )
+            if exists $arg{ flag };
 
-  push @params, delete $arg{ subcommand };
+        push @params, delete $arg{ subcommand };
 
-  delete $arg{ ctid };
-  push @params, $global{ ctid };
+        delete $arg{ ctid };
+        push @params, $global{ ctid };
 
-  for my $p ( keys %arg ) {
+        for my $p ( keys %arg ) {
 
-    my $arg_name = $p =~ /^command|script$/ ? '' : "--$p";
-    my $ref      = ref $arg{ $p };
+            my $arg_name = $p =~ /^command|script$/ ? '' : "--$p";
+            my $ref = ref $arg{ $p };
 
-    if ( $ref eq 'ARRAY' ) {
+            if ( $ref eq 'ARRAY' ) {
 
-      push @params, ( $arg_name, $_ )
-        for @{ $arg{ $p } };
+                push @params, ( $arg_name, $_ ) for @{ $arg{ $p } };
 
-    } elsif ( $ref eq '' ) {
+            } elsif ( $ref eq '' ) {
 
-      push @params, $arg_name;
+                push @params, $arg_name;
 
-      push @params, $arg{ $p }
-        if defined $arg{ $p } && $arg{ $p } ne '';
+                push @params, $arg{ $p }
+                    if defined $arg{ $p } && $arg{ $p } ne '';
 
-    } else {
+            } else {
 
-      croak "Don't know how to handle ref type $ref for $p";
+                croak "Don't know how to handle ref type $ref for $p";
 
-    }
-  }
+            }
+        } ## end for my $p ( keys %arg)
 
-  @params = grep { $_ ne '' } @params;
+        @params = grep { $_ ne '' } @params;
 
-  $hash{ params } = \@params;
+        $hash{ params } = \@params;
 
-  return execute( \%hash );
+        return execute( \%hash );
 
-}
-} # End hiding
+    } ## end sub vzctl
+}  # End hiding
 
 =function subcommand_specs
 
@@ -1017,59 +1054,59 @@ push @exports, 'subcommand_specs';
 
 sub subcommand_specs {
 
-  my @args = validate_with(
-    params => \@_,
-    spec => [ { type => SCALAR } ],
-    allow_extra => 1,
-  );
+    my @args = validate_with(
+        params      => \@_,
+        spec        => [ { type => SCALAR } ],
+        allow_extra => 1,
+    );
 
-  my %spec_hash;
+    my %spec_hash;
 
-  my $subcommands = join '|', keys %vzctl;
+    my $subcommands = join '|', keys %vzctl;
 
-  if ( $args[0] =~ /^$subcommands$/ ) {
+    if ( $args[0] =~ /^$subcommands$/ ) {
 
-    # then build predefined specification hash
+        # then build predefined specification hash
 
-    my @specs = @{ $vzctl{ +shift @args } };
+        my @specs = @{ $vzctl{ +shift @args } };
 
-    # Every subcommand has these two at a minimum.
-    unshift @specs, '[flag]', 'ctid';
+        # Every subcommand has these two at a minimum.
+        unshift @specs, '[flag]', 'ctid';
 
-    for my $spec ( @specs ) {
+        for my $spec ( @specs ) {
 
-      my $optional = $spec =~ s/^\[(.*)\]$/$1/;
+            my $optional = $spec =~ s/^\[(.*)\]$/$1/;
 
-      croak "Unknown spec $spec"
-        unless exists $validate{ $spec };
+            croak "Unknown spec $spec"
+                unless exists $validate{ $spec };
 
-      next if grep { /^-$spec$/ } @args;
+            next if grep { /^-$spec$/ } @args;
 
-      $spec_hash{ $spec } = $validate{ $spec };
+            $spec_hash{ $spec } = $validate{ $spec };
 
-      $spec_hash{ $spec }{ optional } = 1
-        if $optional;
+            $spec_hash{ $spec }{ optional } = 1
+                if $optional;
+
+        }
+    } ## end if ( $args[0] =~ ...)
+
+    # build custom specification hash if any args are left
+
+    for my $spec ( @args ) {
+
+        next if $spec =~ /^-/;
+        next if exists $spec_hash{ $spec };
+
+        croak "Unknown spec $spec"
+            unless exists $validate{ $spec };
+
+        $spec_hash{ $spec } = $validate{ $spec };
 
     }
-  }
 
-  # build custom specification hash if any args are left
+    return \%spec_hash;
 
-  for my $spec ( @args ) {
-
-    next if $spec =~ /^-/;
-    next if exists $spec_hash{ $spec };
-
-    croak "Unknown spec $spec"
-      unless exists $validate{ $spec };
-
-    $spec_hash{ $spec } = $validate{ $spec };
-
-  }
-
-  return \%spec_hash;
-
-}
+} ## end sub subcommand_specs
 
 ############################################################################
 # Internal Functions
@@ -1081,16 +1118,16 @@ sub subcommand_specs {
 
 sub _find_command {
 
-  #my ( $pgm, $params ) = @_;
-  my $pgm = shift;
+    #my ( $pgm, $params ) = @_;
+    my $pgm = shift;
 
-  return 1
-    if exists $global{ path }{ $pgm };
+    return 1
+        if exists $global{ path }{ $pgm };
 
-  $global{ path }{ $pgm } = which( $pgm )
-    or croak "Could not find $pgm in path ($ENV{PATH})";
+    $global{ path }{ $pgm } = which( $pgm )
+        or croak "Could not find $pgm in path ($ENV{PATH})";
 
-  return 1;
+    return 1;
 
 }
 
@@ -1098,81 +1135,81 @@ sub _find_command {
 
 sub _validate_ctid {
 
-  #my ( $ctid, $params ) = @_;
-  my $check_ctid = shift;
+    #my ( $ctid, $params ) = @_;
+    my $check_ctid = shift;
 
-  { no warnings qw( numeric uninitialized );
+    {
+        no warnings qw( numeric uninitialized );
 
-    return 1
-      if ( exists $global{ ctid } && $global{ ctid } == $check_ctid )
-      || ( exists $global{ name } && $global{ name } eq $check_ctid );
-  };
+        return 1
+            if ( exists $global{ ctid } && $global{ ctid } == $check_ctid )
+            || ( exists $global{ name } && $global{ name } eq $check_ctid );
+    };
 
-  # XXX: Need to modify this when vzlist is handled so we keep things
-  # uncluttered.
+    # XXX: Need to modify this when vzlist is handled so we keep things
+    # uncluttered.
 
-  my ( $stdout, $stderr, $syserr ) = execute({
-    command => 'vzlist',
-    params  => [ '-Ho', 'ctid,name', $check_ctid ],
-  });
+    my ( $stdout, $stderr, $syserr )
+        = execute(
+        { command => 'vzlist', params => [ '-Ho', 'ctid,name', $check_ctid ], }
+        );
 
-  croak 'vzlist did not execute'
-    if $syserr == -1;
+    croak 'vzlist did not execute'
+        if $syserr == -1;
 
-  $syserr >>= 8;
+    $syserr >>= 8;
 
-  croak "Invalid or unknown container ($check_ctid): $stderr"
-    if $syserr == 1;
+    croak "Invalid or unknown container ($check_ctid): $stderr"
+        if $syserr == 1;
 
-  $stdout =~ s/^\s*(.*?)\s*$/$1/;
-  my ( $ctid, $name ) = split /\s+/, $stdout;
+    $stdout =~ s/^\s*(.*?)\s*$/$1/;
+    my ( $ctid, $name ) = split /\s+/, $stdout;
 
-  $global{ ctid } = $ctid;
-  $global{ name } = $name;
+    $global{ ctid } = $ctid;
+    $global{ name } = $name;
 
-  return 1;
+    return 1;
 
-}
+} ## end sub _validate_ctid
 
 # Generate the code for each of the subcommands
 # https://metacpan.org/module/Sub::Exporter#Export-Configuration
 
 sub _generate_subcommand {
 
-  #XXX: Need to handle case of calling class using something like
-  #
-  # use OpenVZ::vzctl set => { -as => 'setip', arg => 'ipadd' };
-  #
-  # and creating a sub that only accepts the ipadd parameter.
+    #XXX: Need to handle case of calling class using something like
+    #
+    # use OpenVZ::vzctl set => { -as => 'setip', arg => 'ipadd' };
+    #
+    # and creating a sub that only accepts the ipadd parameter.
 
-  my ( $class, $name, $arg, $collection ) = @_;
-  my $spec = subcommand_specs( $name );
+    my ( $class, $name, $arg, $collection ) = @_;
+    my $spec = subcommand_specs( $name );
 
-  my %sub_spec;
+    my %sub_spec;
 
-  $sub_spec{ spec } = $spec;
+    $sub_spec{ spec } = $spec;
 
-  sub {
+    sub {
 
-    $sub_spec{ params } = \@_;
-    my %arg = validate_with( %sub_spec );
-    $arg{ subcommand } = $name;
-    vzctl( \%arg );
+        $sub_spec{ params } = \@_;
+        my %arg = validate_with( %sub_spec );
+        $arg{ subcommand } = $name;
+        vzctl( \%arg );
 
-  }
-}
+        }
+} ## end sub _generate_subcommand
 
 ############################################################################
 # Setup exporter
 
-push @exports, ( $_ => \&_generate_subcommand )
-  for keys %vzctl;
+push @exports, ( $_ => \&_generate_subcommand ) for keys %vzctl;
 
 my $config = {
 
-  exports => \@exports,
-  groups  => {},
-  collectors => [],
+    exports    => \@exports,
+    groups     => {},
+    collectors => [],
 
 };
 
