@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::Most tests => 7011;
+use Test::Most tests => 17458;
 use Test::NoWarnings;
 
 use Try::Tiny;
@@ -29,41 +29,54 @@ my %check = do {
     my $not_allowed_type = qr/not one of the allowed types/;
     my $did_not_pass     = qr/did not pass/;
 
-    my @cap_names      = capabilities();
+    my @cap_names = capabilities();
 
-    cmp_bag( \@cap_names, [qw(
+    cmp_bag(
+        \@cap_names, [ qw(
 
-      chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-      lease linux_immutable mknod net_admin net_bind_service net_broadcast
-      net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-      sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-      sys_tty_config ve_admin
+                chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+                lease linux_immutable mknod net_admin net_bind_service net_broadcast
+                net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+                sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+                sys_tty_config ve_admin
 
-    )], 'got expected capablity names' );
+                )
+        ],
+        'got expected capablity names'
+    );
 
-    my @good_cap_names = map { ( "$_:on", "$_:off" ) } @cap_names;
+    my @good_cap_names = map { ( "$_:on",  "$_:off" ) } @cap_names;
     my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
     push @bad_cap_names, 'justallaroundbad', $did_not_pass;
 
     my @features_names = features();
 
-    cmp_bag( \@features_names, [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)], 'got expected features names' );
+    cmp_bag(
+        \@features_names,
+        [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)],
+        'got expected features names'
+    );
 
     my @good_features_names = map { ( "$_:on", "$_:off" ) } @features_names;
-    my @bad_features_names = map { ( "$_:bad", $did_not_pass ) } @features_names;
+    my @bad_features_names
+        = map { ( "$_:bad", $did_not_pass ) } @features_names;
     push @bad_features_names, 'justallaroundbad', $did_not_pass;
 
     my @iptables_modules = iptables_modules();
 
-    cmp_bag( \@iptables_modules, [qw(
+    cmp_bag(
+        \@iptables_modules, [ qw(
 
-      ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-      iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-      ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-      ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-      ipt_ttl xt_mac
+                ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+                iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+                ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+                ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+                ipt_ttl xt_mac
 
-    )], 'got expected iptables modules' );
+                )
+        ],
+        'got expected iptables modules'
+    );
 
     my @iptables_names = map { ( "$_:on", "$_:off" ) } @iptables_modules;
 
@@ -370,10 +383,25 @@ my %invalid_regex = (
 
 # XXX: my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
 
-for my $cmd ( sort( known_commands() ) ) {
+my @known_commands = sort( known_commands() );
+
+cmp_bag(
+    \@known_commands, [ qw(
+
+            chkpnt create destroy enter exec exec2 mount quotainit quotaoff quotaon
+            restart restore runscript set start status stop umount
+
+            )
+    ],
+    'got expected known commands'
+);
+
+# XXX: need to test subcommand_specs
+
+for my $cmd ( @known_commands ) {
     for my $parm ( sort keys %{ subcommand_specs( $cmd ) } ) {
 
-        next if $parm =~ /^ctid|flag$/;  # these are tested for every time
+        next if $parm =~ /^ctid|flag$/;  # these are tested for every option
 
         note( "Testing $cmd $parm bad ctids" );
 
@@ -388,12 +416,15 @@ for my $cmd ( sort( known_commands() ) ) {
                 $invalid_hash{ flag } = $flag
                     if $flag ne '';
 
-                my $info = sprintf '%s %s%s --%s ... -- caught %s',
-                    $cmd, ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
+                my $info = sprintf '%s %s%s --%s ... -- caught %s', $cmd,
+                    ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
+
+                my $bad_ctids_object = OpenVZ::vzctl->new;
+                isa_ok( $bad_ctids_object, 'OpenVZ::vzctl', 'object created for bad ctids' );
+                throws_ok { $bad_ctids_object->$cmd( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
 
                 no strict 'refs';
-                throws_ok { $cmd->( \%invalid_hash ) } $invalid_regex{ $ctid },
-                    $info;
+                throws_ok { $cmd->( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
 
             }  # end my $flag ( @global_flags )
         }  # end for my $ctid ( @bad_ctids )
@@ -421,9 +452,12 @@ for my $cmd ( sort( known_commands() ) ) {
                     $cmd, ( $flag ? "$flag " : '' ), $ctid, $parm,
                     $bad_values->[$ix];
 
+                my $bad_values_object = OpenVZ::vzctl->new;
+                isa_ok( $bad_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
+                throws_ok { $bad_values_object->$cmd( \%bad_hash ) } $bad_values->[ $ix + 1 ], $info;
+
                 no strict 'refs';
-                throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix + 1 ],
-                    $info;
+                throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix + 1 ], $info;
 
             }  # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
 
@@ -484,6 +518,15 @@ for my $cmd ( sort( known_commands() ) ) {
 
                 $good_hash{ flag } = $flag
                     if $flag ne '';
+
+                my $good_values_object = OpenVZ::vzctl->new;
+                isa_ok( $good_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
+                my @object_result = $good_values_object->$cmd( \%good_hash );
+
+                is( $object_result[0], $expected, "got $expected" );
+                is( $object_result[1], '',        'got empty stderr' );
+                is( $object_result[2], 0,         'syserr was 0' );
+                like( $object_result[3], qr/^\d+(?:.\d+)?$/, 'time was reported' );
 
                 my @result;
                 { no strict 'refs'; @result = $cmd->( \%good_hash ) };

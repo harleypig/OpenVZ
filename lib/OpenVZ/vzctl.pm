@@ -41,9 +41,10 @@ use File::Which;
 use IPC::Run3::Simple;
 use Params::Validate qw( :all );
 use Regexp::Common qw( URI net );
+use Scalar::Util 'blessed';
 use Sub::Exporter;
 
-our ( %global, @exports );
+our ( %global, @exports, $AUTOLOAD );
 
 # VERSION
 
@@ -870,7 +871,22 @@ my %validate = do {
 ############################################################################
 # Public functions
 
-#XXX: Should be extracted out into common module (OpenVZ.pm?)
+#XXX: Some of these should be extracted out into common module (OpenVZ.pm?)
+
+=function new
+
+If you prefer an object oriented interface then just C<use OpenVZ::vzctl> and
+call the new function.  All of the following functions will be avalable as
+methods.
+
+  $vzctl = OpenVZ::vzctl->new;
+  $vzctl->set({ ctid => 101, name => 'user101', save => '' });
+
+=cut
+
+push @exports, 'new';
+
+sub new { bless \my $object, ref $_[0] || $_[0] }
 
 =function execute
 
@@ -897,6 +913,8 @@ passed on the command line.
 push @exports, 'execute';
 
 sub execute {
+
+    shift if blessed $_[0];
 
     my %arg = validate(
         @_, {
@@ -946,6 +964,8 @@ a specific command unless you know what you're doing.
     push @exports, 'vzctl';
 
     sub vzctl {
+
+        shift if blessed $_[0];
 
         my $spec = subcommand_specs( qw( flag ctid ) );
         $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
@@ -1045,6 +1065,8 @@ push @exports, 'subcommand_specs';
 
 sub subcommand_specs {
 
+    shift if blessed $_[0];
+
     my @args = validate_with(
         params      => \@_,
         spec        => [ { type => SCALAR } ],
@@ -1109,6 +1131,8 @@ sub subcommand_specs {
 
 sub _find_command {
 
+    shift if blessed $_[0];
+
     #my ( $pgm, $params ) = @_;
     my $pgm = shift;
 
@@ -1125,6 +1149,8 @@ sub _find_command {
 # Is the provided ctid a valid container identifier?
 
 sub _validate_ctid {
+
+    shift if blessed $_[0];
 
     #my ( $ctid, $params ) = @_;
     my $check_ctid = shift;
@@ -1171,6 +1197,8 @@ sub _validate_ctid {
 
 sub _generate_subcommand {
 
+    shift if blessed $_[0];
+
     #XXX: Need to handle case of calling class using something like
     #
     # use OpenVZ::vzctl set => { -as => 'setip', arg => 'ipadd' };
@@ -1178,8 +1206,8 @@ sub _generate_subcommand {
     # and creating a sub that only accepts the ipadd parameter.
 
     #my ( $class, $name, $arg, $collection ) = @_;
-    my ( undef, $name ) = @_;
-    my $spec = subcommand_specs( $name );
+    my ( undef, $subcommand ) = @_;
+    my $spec = subcommand_specs( $subcommand );
 
     my %sub_spec;
 
@@ -1187,13 +1215,40 @@ sub _generate_subcommand {
 
     sub {
 
+        shift if blessed $_[0];
+
         $sub_spec{ params } = \@_;
         my %arg = validate_with( %sub_spec );
-        $arg{ subcommand } = $name;
+        $arg{ subcommand } = $subcommand;
         vzctl( \%arg );
 
         }
 } ## end sub _generate_subcommand
+
+# for oop stuff
+
+# XXX: Do we need/want to support methods for the various options (what is returned from subcommand_specs)?
+
+sub AUTOLOAD {
+
+  carp "$_[0] is not an object"
+    unless blessed $_[0];
+
+  my $self = shift;
+  ( my $subcommand = $AUTOLOAD ) =~ s/^.*:://;
+
+  carp "$subcommand is not a valid method"
+    unless exists $vzctl{ $subcommand };
+
+  no strict 'refs';
+  *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
+
+  goto &$AUTOLOAD;
+
+}
+
+# AUTOLOAD assumes DESTROY exists
+DESTROY {}
 
 ############################################################################
 # Setup exporter
