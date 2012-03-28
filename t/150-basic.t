@@ -51,15 +51,10 @@ my %check = do {
 
     my @features_names = features();
 
-    cmp_bag(
-        \@features_names,
-        [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)],
-        'got expected features names'
-    );
+    cmp_bag( \@features_names, [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)], 'got expected features names' );
 
-    my @good_features_names = map { ( "$_:on", "$_:off" ) } @features_names;
-    my @bad_features_names
-        = map { ( "$_:bad", $did_not_pass ) } @features_names;
+    my @good_features_names = map { ( "$_:on",  "$_:off" ) } @features_names;
+    my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) } @features_names;
     push @bad_features_names, 'justallaroundbad', $did_not_pass;
 
     my @iptables_modules = iptables_modules();
@@ -85,58 +80,45 @@ my %check = do {
         applyconfig => {
             good => [$scalar],
             bad  => [
-                undef,    $not_allowed_type, '',        $did_not_pass,
-                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef,  $not_allowed_type,
-                $glob,    $not_allowed_type, $globref,  $not_allowed_type,
+                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob,     $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
 
         avnumproc => {
-            good => [
-                100,    '101g',    '102m',      '103k',
-                '104p', '105:106', '107g:108m', '109k:110p'
-            ],
-            bad => [
-                undef,    $not_allowed_type, '',        $did_not_pass,
-                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef,  $not_allowed_type,
-                $glob,    $not_allowed_type, $globref,  $not_allowed_type,
+            good => [ 100, '101g', '102m', '103k', '104p', '105:106', '107g:108m', '109k:110p' ],
+            bad  => [
+                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob,     $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
 
         bootorder => {
             good => [1],
             bad  => [
-                undef,    $not_allowed_type, '',        $did_not_pass,
-                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef,  $not_allowed_type,
-                $glob,    $not_allowed_type, $globref,  $not_allowed_type,
+                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob,     $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
 
         capability => {
             good => \@good_cap_names,
             bad  => [
-                undef,     $not_allowed_type,
-                '',        $did_not_pass,
-                \$scalar,  $not_allowed_type,
-                $arrayref, $not_allowed_type,
-                $hashref,  $not_allowed_type,
-                $coderef,  $not_allowed_type,
-                $glob,     $not_allowed_type,
-                $globref,  $not_allowed_type,
-                @bad_cap_names,
+                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob,     $not_allowed_type, $globref, $not_allowed_type, @bad_cap_names,
             ],
         },
 
         command => {
             good => [ 'good', [qw( one two )] ],
             bad => [
-                undef, $not_allowed_type, '', $did_not_pass,
-                \$scalar, $not_allowed_type, [], $did_not_pass,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type, $globref, $not_allowed_type,
+                undef, $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                [],    $did_not_pass,     $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob, $not_allowed_type, $globref, $not_allowed_type,
             ],
             bare => 1,  # --command should not appear in the actual command
         },
@@ -144,9 +126,8 @@ my %check = do {
         cpumask => {
             good => [ 1, '2:3', 'all' ],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
                 $globref, $not_allowed_type,
             ],
         },
@@ -154,9 +135,8 @@ my %check = do {
         devices => {
             good => [ 'none', 'all:r', 'all:w', 'all:rw', 'b:1:2', 'c:3:4' ],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
                 $globref, $not_allowed_type, 'all',    $did_not_pass,
             ],
         },
@@ -164,32 +144,26 @@ my %check = do {
         features => {
             good => \@good_features_names,
             bad  => [
-                undef,    $not_allowed_type,
-                '',       $did_not_pass,
-                \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type,
-                $globref, $not_allowed_type,
-                @bad_features_names
+                undef,    $not_allowed_type, '',       $did_not_pass,
+                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
+                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+                $globref, $not_allowed_type, @bad_features_names
             ],
         },
 
         force => {
             good => [undef],
             bad  => [
-                $scalar,  $not_allowed_type, \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type, $globref, $not_allowed_type,
+                $scalar,  $not_allowed_type, \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
+                $coderef, $not_allowed_type, $glob,    $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
 
         ioprio => {
             good => [ 0 .. 7 ],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
                 $globref, $not_allowed_type, 8,        $did_not_pass,
             ],
         },
@@ -197,9 +171,8 @@ my %check = do {
         onboot => {
             good => [qw( yes no )],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
                 $glob,    $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
@@ -207,9 +180,8 @@ my %check = do {
         setmode => {
             good => [qw( restart ignore )],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
                 $glob,    $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
@@ -218,9 +190,8 @@ my %check = do {
         userpasswd => {
             good => ['joeuser:seekrit'],
             bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
                 $glob,    $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
@@ -228,95 +199,68 @@ my %check = do {
         ipadd => {
             good => [ '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
             bad => [
-                undef,                     $not_allowed_type,
-                '',                        $did_not_pass,
-                $scalar,                   $did_not_pass,
-                \$scalar,                  $not_allowed_type,
-                [],                        $did_not_pass,
-                $hashref,                  $not_allowed_type,
-                $coderef,                  $not_allowed_type,
-                $glob,                     $not_allowed_type,
-                $globref,                  $not_allowed_type,
-                '300.1.2.3',               $did_not_pass,
-                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
-                [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
+                undef,    $not_allowed_type, '',          $did_not_pass,
+                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
+                [],       $did_not_pass,     $hashref,    $not_allowed_type,
+                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
+                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
+                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
             ],
         },
 
         ipdel => {
             good => [ 'all', '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
             bad => [
-                undef,                     $not_allowed_type,
-                '',                        $did_not_pass,
-                $scalar,                   $did_not_pass,
-                \$scalar,                  $not_allowed_type,
-                [],                        $did_not_pass,
-                $hashref,                  $not_allowed_type,
-                $coderef,                  $not_allowed_type,
-                $glob,                     $not_allowed_type,
-                $globref,                  $not_allowed_type,
-                '300.1.2.3',               $did_not_pass,
-                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass,
-                [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
+                undef,    $not_allowed_type, '',          $did_not_pass,
+                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
+                [],       $did_not_pass,     $hashref,    $not_allowed_type,
+                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
+                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
+                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
             ],
         },
 
         iptables => {
             good => \@iptables_names,
             bad  => [
-                undef,    $not_allowed_type, '',        $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar,  $not_allowed_type,
-                [],       $did_not_pass,     $arrayref, $did_not_pass,
-                $hashref, $not_allowed_type, $coderef,  $not_allowed_type,
-                $glob,    $not_allowed_type, $globref,  $not_allowed_type,
+                undef, $not_allowed_type, '', $did_not_pass, $scalar, $did_not_pass,
+                \$scalar, $not_allowed_type, [], $did_not_pass, $arrayref, $did_not_pass,
+                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob, $not_allowed_type,
+                $globref, $not_allowed_type,
             ],
         },
 
         create_dumpfile => {
             good => ['/tmp/testfile'],
             bad  => [
-                undef,    $not_allowed_type, '',        $did_not_pass,
-                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef,  $not_allowed_type,
-                $glob,    $not_allowed_type, $globref,  $not_allowed_type,
+                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+                $glob,     $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
 
         restore_dumpfile => {
             good => ['/dev/urandom'],
             bad  => [
-                undef,
-                $not_allowed_type,
-                '',
-                $did_not_pass,
-                \$scalar,
-                $not_allowed_type,
-                $arrayref,
-                $not_allowed_type,
-                $hashref,
-                $not_allowed_type,
-                $coderef,
-                $not_allowed_type,
-                $glob,
-                $not_allowed_type,
-                $globref,
-                $not_allowed_type,
-                '/why/do/you/have/a/path/that/looks/like/this',
-                $did_not_pass,
+                undef,                                          $not_allowed_type,
+                '',                                             $did_not_pass,
+                \$scalar,                                       $not_allowed_type,
+                $arrayref,                                      $not_allowed_type,
+                $hashref,                                       $not_allowed_type,
+                $coderef,                                       $not_allowed_type,
+                $glob,                                          $not_allowed_type,
+                $globref,                                       $not_allowed_type,
+                '/why/do/you/have/a/path/that/looks/like/this', $did_not_pass,
             ],
         },
 
         #    devnodes => { callbacks => { 'setting access to devnode' => sub {
         devnodes => {
-            good => [
-                qw( none urandom:r urandom:w urandom:q urandom:rw urandom:rq urandom:wq )
-            ],
-            bad => [
-                undef,     $not_allowed_type, '',       $did_not_pass,
-                $scalar,   $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef,  $not_allowed_type, $glob,    $not_allowed_type,
-                $globref,  $not_allowed_type,
+            good => [qw( none urandom:r urandom:w urandom:q urandom:rw urandom:rq urandom:wq )],
+            bad  => [
+                undef,    $not_allowed_type, '',        $did_not_pass,     $scalar,  $did_not_pass,
+                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type, $hashref, $not_allowed_type,
+                $coderef, $not_allowed_type, $glob,     $not_allowed_type, $globref, $not_allowed_type,
             ],
         },
     );
@@ -374,10 +318,8 @@ my @global_flags = ( '', 'quiet', 'verbose' );
 
 my %invalid_regex = (
 
-    invalid_ctid =>
-        qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/,
-    invalid_name =>
-        qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./,
+    invalid_ctid => qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/,
+    invalid_name => qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./,
 
 );
 
@@ -416,8 +358,7 @@ for my $cmd ( @known_commands ) {
                 $invalid_hash{ flag } = $flag
                     if $flag ne '';
 
-                my $info = sprintf '%s %s%s --%s ... -- caught %s', $cmd,
-                    ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
+                my $info = sprintf '%s %s%s --%s ... -- caught %s', $cmd, ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
 
                 my $bad_ctids_object = OpenVZ::vzctl->new;
                 isa_ok( $bad_ctids_object, 'OpenVZ::vzctl', 'object created for bad ctids' );
@@ -430,8 +371,7 @@ for my $cmd ( @known_commands ) {
         }  # end for my $ctid ( @bad_ctids )
 
         my $ctid = int 100 + rand( 100 );
-        my $name = join '',
-            map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
+        my $name = join '', map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
         my $test = "$ctid,$name";
 
         for my $flag ( @global_flags ) {
@@ -479,8 +419,7 @@ for my $cmd ( @known_commands ) {
 
                     } else {
 
-                        $expected_parm = join ' ',
-                            map { "--$parm $_" } @{ $good_values->[$ix] };
+                        $expected_parm = join ' ', map { "--$parm $_" } @{ $good_values->[$ix] };
 
                     }
 
@@ -494,8 +433,7 @@ for my $cmd ( @known_commands ) {
 
                         } else {
 
-                            $expected_parm = sprintf '--%s %s', $parm,
-                                $good_values->[$ix];
+                            $expected_parm = sprintf '--%s %s', $parm, $good_values->[$ix];
 
                         }
 
@@ -511,8 +449,7 @@ for my $cmd ( @known_commands ) {
 
                 }
 
-                my $expected = sprintf 'vzctl %s%s %s %s',
-                    ( $flag ? "--$flag " : '' ), $cmd, $ctid, $expected_parm;
+                my $expected = sprintf 'vzctl %s%s %s %s', ( $flag ? "--$flag " : '' ), $cmd, $ctid, $expected_parm;
 
                 my %good_hash = ( ctid => $test, $parm => $good_values->[$ix] );
 
@@ -541,8 +478,7 @@ for my $cmd ( @known_commands ) {
 
         note( "Deleting $parm" );
         delete $check{ $parm }
-            unless $parm =~ /^command|force|hostname|ipadd$/
-        ;  # these appear in multiple commands
+            unless $parm =~ /^command|force|hostname|ipadd$/;  # these appear in multiple commands
 
     }  # end for my $parm ...
 }  # end for my $cmd ...

@@ -1,7 +1,7 @@
 ##########################################
 # Basic Options
 
---maximum-line-length=80
+--maximum-line-length=132
 --indent-columns=4
 --notabs
 

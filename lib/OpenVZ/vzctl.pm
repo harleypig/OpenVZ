@@ -565,7 +565,7 @@ my %vzctl = (
     enter     => [qw( [exec] )],
     chkpnt    => [qw( [create_dumpfile] )],
     restore   => [qw( [restore_dumpfile] )],
-    create => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
+    create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
 
     set => [ qw(
 
@@ -585,6 +585,8 @@ my %vzctl = (
 
 );
 
+####################################
+
 =function known_commands
 
 Returns a list of known vzctl commands
@@ -594,6 +596,8 @@ Returns a list of known vzctl commands
 push @exports, 'known_commands';
 
 sub known_commands { keys %vzctl }
+
+####################################
 
 =function capabilities
 
@@ -615,6 +619,8 @@ push @exports, 'capabilities';
 
 sub capabilities { wantarray ? @capabilities : \@capabilities }
 
+####################################
+
 =function iptables_modules
 
 Returns a list of known iptables modules for the C<vzctl set iptables> option.
@@ -634,6 +640,8 @@ my @iptables_modules = qw(
 push @exports, 'iptables_modules';
 
 sub iptables_modules { wantarray ? @iptables_modules : \@iptables_modules }
+
+####################################
 
 =function features
 
@@ -657,37 +665,25 @@ my %validate = do {
 
     my %hash = (
 
-        avnumproc =>
-            { type => SCALAR, regex => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
-        features =>
-            { type => SCALAR, regex => qr/^(?:$features_names):(?:on|off)$/i },
-
-        bootorder  => { type => SCALAR, regex => qr/^\d+$/ },
-        cpumask    => { type => SCALAR, regex => qr/^\d+(?:[,-]\d+)*|all$/i },
-        flag       => { type => SCALAR, regex => qr/^quiet|verbose/i },
+        avnumproc  => { type => SCALAR, regex     => qr/^\d+[gmkp]?(?::\d+[gmkp]?)?$/i },
+        bootorder  => { type => SCALAR, regex     => qr/^\d+$/ },
+        capability => { type => SCALAR, regex     => qr/^(?:$capability_names):(?:on|off)$/i },
+        cpumask    => { type => SCALAR, regex     => qr/^\d+(?:[,-]\d+)*|all$/i },
+        ctid       => { type => SCALAR, callbacks => { 'validate ctid' => \&_validate_ctid } },
+        devices    => { type => SCALAR, regex     => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i },
+        features   => { type => SCALAR, regex     => qr/^(?:$features_names):(?:on|off)$/i },
+        flag       => { type => SCALAR, regex     => qr/^quiet|verbose/i },
         force      => { type => UNDEF },
         ioprio     => { type => SCALAR, regex => qr/^[0-7]$/ },
         onboot     => { type => SCALAR, regex => qr/^yes|no$/i },
         setmode    => { type => SCALAR, regex => qr/^restart|ignore/i },
         userpasswd => { type => SCALAR, regex => qr/^(?:\w+):(?:\w+)$/ },
 
-        capability => {
-            type  => SCALAR,
-            regex => qr/^(?:$capability_names):(?:on|off)$/i
-        },
-        devices => {
-            type  => SCALAR,
-            regex => qr/^(?:(?:[bc]:\d+:\d+)|all:(?:r?w?))|none$/i
-        },
         applyconfig => {
             type      => SCALAR,
             callbacks => {
                 'do not want empty strings' => sub { return $_[0] ne '' }
             }
-        },
-        ctid => {
-            type      => SCALAR,
-            callbacks => { 'validate ctid' => \&_validate_ctid }
         },
 
         command => {
@@ -719,9 +715,7 @@ my %validate = do {
                     # my @bad_ips = grep { defined $_ && ! /^$RE{net}{IPv4}$/ } @ips;
                     # don't work and I'm not sure what else to try.
                     my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-                    return
-                        ! @bad_ips
-                        ;  # return 1 if there are no bad ips, undef otherwise.
+                    return ! @bad_ips;  # return 1 if there are no bad ips, undef otherwise.
 
                     #NOTE: I can't find a way to modify the incoming data, and it may not
                     #      be a good idea to do that in any case. Unless, and until, I can
@@ -771,8 +765,7 @@ my %validate = do {
                     }
 
                     no warnings 'uninitialized';  # see notes for ipadd
-                    my @bad_names
-                        = grep { ! /^(?:$iptables_names):o(?:n|ff)$/ } @names;
+                    my @bad_names = grep { ! /^(?:$iptables_names):o(?:n|ff)$/ } @names;
                     return ! @bad_names;
 
                     #NOTE: See ipadd note.
@@ -888,6 +881,8 @@ push @exports, 'new';
 
 sub new { bless \my $object, ref $_[0] || $_[0] }
 
+####################################
+
 =function execute
 
 This function should not be called directly unless you know what you're doing.
@@ -918,8 +913,7 @@ sub execute {
 
     my %arg = validate(
         @_, {
-            'command' =>
-                { callbacks => { 'find command path' => \&_find_command } },
+            'command' => { callbacks => { 'find command path' => \&_find_command } },
             'params' => { type => ARRAYREF, optional => 1 },
         } );
 
@@ -927,6 +921,8 @@ sub execute {
     return run3( [ $global{ path }{ $arg{ command } }, @{ $arg{ params } } ] );
 
 }
+
+####################################
 
 =function vzctl
 
@@ -954,12 +950,54 @@ become '--ipadd 1.2.3.4 --ipadd 2.3.4.5'.
 You're probably better off if you use the functions designed for
 a specific command unless you know what you're doing.
 
+=function subcommand_specs
+
+C<subcommand_specs> expects a list.  The first element will be checked against
+a list of known subcommands for vzctl.
+
+If the first element is a known subcommand a predefined hashref will be
+instantiated.  Any following elements will be treated as additional
+specification names to be included.  Duplicates will be silently ignored.  If
+an element is preceded by a dash (-), that element will be removed from the
+hashref.
+
+If the first element is not a known subcommand a hashref will be created with
+the specification names provided, including the first element.  Using a dash
+makes no sense in this context, but will not cause any problems.
+
+C<subcommand_specs> will return the hashref described previously that
+can be used in the C<spec> option of C<Params::Validate>'s C<validate_with>
+function.  E.g., the call
+
+  my $spec = subcommand_specs( 'stop' );
+
+will return a hashref into C<$spec> that looks like
+
+  $spec = {
+    flag  => { regex => qr/^quiet|verbose/, optional => 1 },
+    ctid  => { callback => { 'validate ctid' => \&_validate_ctid } },
+  }
+
+while the call
+
+  my $spec = subcommand_specs( 'ctid' );
+
+would yield
+
+  $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
+
+If a parameter is surrounded with square brackets ( [] ) the parameter is made
+optional.
+
 =cut
 
 {  # Hide subcommands regex
 
-    #my $subcommands = join '|', keys %vzctl;
-    my $subcommands = join '|', known_commands();
+    my $spec = subcommand_specs( qw( flag ctid ) );
+    my $subcommands = join '|', sort( known_commands() );
+    $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
+
+        my %hash = ( command => 'vzctl' );
 
     push @exports, 'vzctl';
 
@@ -967,13 +1005,7 @@ a specific command unless you know what you're doing.
 
         shift if blessed $_[0];
 
-        my $spec = subcommand_specs( qw( flag ctid ) );
-        $spec->{ subcommand } = { regex => qr/^$subcommands$/ },
-
-            my %arg
-            = validate_with( params => @_, spec => $spec, allow_extra => 1, );
-
-        my %hash = ( command => 'vzctl' );
+        my %arg = validate_with( params => @_, spec => $spec, allow_extra => 1, );
 
         my @params;
 
@@ -1018,108 +1050,63 @@ a specific command unless you know what you're doing.
         return execute( \%hash );
 
     } ## end sub vzctl
-}  # End hiding
 
-=function subcommand_specs
+####################################
 
-C<subcommand_specs> expects a list.  The first element will be checked against
-a list of known subcommands for vzctl.
+    push @exports, 'subcommand_specs';
 
-If the first element is a known subcommand a predefined hashref will be
-instantiated.  Any following elements will be treated as additional
-specification names to be included.  Duplicates will be silently ignored.  If
-an element is preceded by a dash (-), that element will be removed from the
-hashref.
+    sub subcommand_specs {
 
-If the first element is not a known subcommand a hashref will be created with
-the specification names provided, including the first element.  Using a dash
-makes no sense in this context, but will not cause any problems.
+        shift if blessed $_[0];
 
-C<subcommand_specs> will return the hashref described previously that
-can be used in the C<spec> option of C<Params::Validate>'s C<validate_with>
-function.  E.g., the call
+        my @args = validate_with( params => \@_, spec => [ { type => SCALAR } ], allow_extra => 1, );
 
-  my $spec = subcommand_specs( 'stop' );
+        my %spec_hash;
 
-will return a hashref into C<$spec> that looks like
+        if ( defined $subcommands && $args[0] =~ /^$subcommands$/ ) {
 
-  $spec = {
-    flag  => { regex => qr/^quiet|verbose/, optional => 1 },
-    ctid  => { callback => { 'validate ctid' => \&_validate_ctid } },
-  }
+            # then build predefined specification hash
 
-while the call
+            my @specs = @{ $vzctl{ +shift @args } };
 
-  my $spec = subcommand_specs( 'ctid' );
+            # Every subcommand has these two at a minimum.
+            unshift @specs, '[flag]', 'ctid';
 
-would yield
+            for my $spec ( @specs ) {
 
-  $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
+                my $optional = $spec =~ s/^\[(.*)\]$/$1/;
 
-If a parameter is surrounded with square brackets ( [] ) the parameter is made
-optional.
+                croak "Unknown spec $spec"
+                    unless exists $validate{ $spec };
 
-=cut
+                next if grep { /^-$spec$/ } @args;
 
-push @exports, 'subcommand_specs';
+                $spec_hash{ $spec } = $validate{ $spec };
 
-sub subcommand_specs {
+                $spec_hash{ $spec }{ optional } = 1
+                    if $optional;
 
-    shift if blessed $_[0];
+            }
+        } ## end if ( $args[0] =~ ...)
 
-    my @args = validate_with(
-        params      => \@_,
-        spec        => [ { type => SCALAR } ],
-        allow_extra => 1,
-    );
+        # build custom specification hash if any args are left
 
-    my %spec_hash;
+        for my $spec ( @args ) {
 
-    my $subcommands = join '|', keys %vzctl;
-
-    if ( $args[0] =~ /^$subcommands$/ ) {
-
-        # then build predefined specification hash
-
-        my @specs = @{ $vzctl{ +shift @args } };
-
-        # Every subcommand has these two at a minimum.
-        unshift @specs, '[flag]', 'ctid';
-
-        for my $spec ( @specs ) {
-
-            my $optional = $spec =~ s/^\[(.*)\]$/$1/;
+            next if $spec =~ /^-/;
+            next if exists $spec_hash{ $spec };
 
             croak "Unknown spec $spec"
                 unless exists $validate{ $spec };
 
-            next if grep { /^-$spec$/ } @args;
-
             $spec_hash{ $spec } = $validate{ $spec };
 
-            $spec_hash{ $spec }{ optional } = 1
-                if $optional;
-
         }
-    } ## end if ( $args[0] =~ ...)
 
-    # build custom specification hash if any args are left
+        return \%spec_hash;
 
-    for my $spec ( @args ) {
-
-        next if $spec =~ /^-/;
-        next if exists $spec_hash{ $spec };
-
-        croak "Unknown spec $spec"
-            unless exists $validate{ $spec };
-
-        $spec_hash{ $spec } = $validate{ $spec };
-
-    }
-
-    return \%spec_hash;
-
-} ## end sub subcommand_specs
+    } ## end sub subcommand_specs
+}  # End hiding
 
 ############################################################################
 # Internal Functions
@@ -1169,10 +1156,7 @@ sub _validate_ctid {
     # XXX: Need to modify this when vzlist is handled so we keep things
     # uncluttered.
 
-    my ( $stdout, $stderr, $syserr )
-        = execute(
-        { command => 'vzlist', params => [ '-Ho', 'ctid,name', $check_ctid ], }
-        );
+    my ( $stdout, $stderr, $syserr ) = execute( { command => 'vzlist', params => [ '-Ho', 'ctid,name', $check_ctid ], } );
 
     croak 'vzlist did not execute'
         if $syserr == -1;
@@ -1231,24 +1215,23 @@ sub _generate_subcommand {
 
 sub AUTOLOAD {
 
-  carp "$_[0] is not an object"
-    unless blessed $_[0];
+    carp "$_[0] is not an object"
+        unless blessed $_[0];
 
-  my $self = shift;
-  ( my $subcommand = $AUTOLOAD ) =~ s/^.*:://;
+    ( my $subcommand = $AUTOLOAD ) =~ s/^.*:://;
 
-  carp "$subcommand is not a valid method"
-    unless exists $vzctl{ $subcommand };
+    carp "$subcommand is not a valid method"
+        unless exists $vzctl{ $subcommand };
 
-  no strict 'refs';
-  *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
+    no strict 'refs';
+    *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
 
-  goto &$AUTOLOAD;
+    goto &$AUTOLOAD;
 
 }
 
 # AUTOLOAD assumes DESTROY exists
-DESTROY {}
+DESTROY { }
 
 ############################################################################
 # Setup exporter
