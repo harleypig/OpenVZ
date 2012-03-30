@@ -20,31 +20,40 @@ http://www.pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">lib/OpenVZ/vzctl.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">70.0%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c0">65.5%</td></tr>
 </table>
 <div><br/></div>
 <table>
 <tr><th>line</th><th>%</th><th colspan="2">coverage</th><th>branch</th></tr>
-<tr><td class="h"><a id="L96">96</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">wantarray ? :</td></tr>
-<tr><td class="h"><a id="L111">111</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">wantarray ? :</td></tr>
+<tr><td class="h"><a id="L101">101</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">wantarray ? :</td></tr>
 <tr><td class="h"><a id="L118">118</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">wantarray ? :</td></tr>
-<tr><td class="h"><a id="L384">384</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $arg{&#39;flag&#39;}</td></tr>
-<tr><td class="h"><a id="L393">393</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$p =~ /^command|script$/ ? :</td></tr>
-<tr><td class="h"><a id="L396">396</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($ref eq &#39;ARRAY&#39;) { }</td></tr>
+<tr><td class="h"><a id="L127">127</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">wantarray ? :</td></tr>
+<tr><td class="h"><a id="L352">352</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L380">380</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L387">387</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $arg{&#39;flag&#39;}</td></tr>
+<tr><td class="h"><a id="L396">396</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$p =~ /^command|script$/ ? :</td></tr>
+<tr><td class="h"><a id="L399">399</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($ref eq &#39;ARRAY&#39;) { }</td></tr>
 <tr><td class="h"></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">elsif ($ref eq &#39;&#39;) { }</td></tr>
-<tr><td class="h"><a id="L404">404</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $arg{$p} and $arg{$p} ne &#39;&#39;</td></tr>
-<tr><td class="h"><a id="L438">438</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($args[0] =~ /^$subcommands$/)</td></tr>
-<tr><td class="h"><a id="L451">451</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless exists $validate{$spec}</td></tr>
-<tr><td class="h"><a id="L454">454</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if grep {/^-$spec$/;} @args</td></tr>
-<tr><td class="h"><a id="L458">458</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $optional</td></tr>
-<tr><td class="h"><a id="L468">468</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $spec =~ /^-/</td></tr>
-<tr><td class="h"><a id="L469">469</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if exists $spec_hash{$spec}</td></tr>
-<tr><td class="h"><a id="L471">471</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless exists $validate{$spec}</td></tr>
-<tr><td class="h"><a id="L496">496</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $global{&#39;path&#39;}{$pgm}</td></tr>
-<tr><td class="h"><a id="L498">498</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $global{&#39;path&#39;}{$pgm} = which($pgm)</td></tr>
-<tr><td class="h"><a id="L517">517</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $global{&#39;ctid&#39;} and $global{&#39;ctid&#39;} == $check_ctid or exists $global{&#39;name&#39;} and $global{&#39;name&#39;} eq $check_ctid</td></tr>
-<tr><td class="h"><a id="L528">528</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $syserr == -1</td></tr>
-<tr><td class="h"><a id="L533">533</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $syserr == 1</td></tr>
+<tr><td class="h"><a id="L410">410</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $arg{$p} and $arg{$p} ne &#39;&#39;</td></tr>
+<tr><td class="h"><a id="L434">434</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L440">440</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (defined $subcommands and $args[0] =~ /^$subcommands$/)</td></tr>
+<tr><td class="h"><a id="L453">453</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless exists $validate{$spec}</td></tr>
+<tr><td class="h"><a id="L456">456</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if grep {/^-$spec$/;} @args</td></tr>
+<tr><td class="h"><a id="L460">460</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $optional</td></tr>
+<tr><td class="h"><a id="L470">470</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $spec =~ /^-/</td></tr>
+<tr><td class="h"><a id="L471">471</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if exists $spec_hash{$spec}</td></tr>
+<tr><td class="h"><a id="L473">473</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless exists $validate{$spec}</td></tr>
+<tr><td class="h"><a id="L495">495</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L501">501</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $global{&#39;path&#39;}{$pgm}</td></tr>
+<tr><td class="h"><a id="L503">503</a></td><td class="c0">0</td><td class="c0">T</td><td class="c0">F</td><td class="s">unless $global{&#39;path&#39;}{$pgm} = which($pgm)</td></tr>
+<tr><td class="h"><a id="L514">514</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L527">527</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if exists $global{&#39;ctid&#39;} and $global{&#39;ctid&#39;} == $check_ctid or exists $global{&#39;name&#39;} and $global{&#39;name&#39;} eq $check_ctid</td></tr>
+<tr><td class="h"><a id="L535">535</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if $syserr == -1</td></tr>
+<tr><td class="h"><a id="L540">540</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $syserr == 1</td></tr>
+<tr><td class="h"><a id="L558">558</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L576">576</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L592">592</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless &amp;blessed($_[0])</td></tr>
+<tr><td class="h"><a id="L597">597</a></td><td class="c0">50</td><td class="c0">T</td><td class="c3">F</td><td class="s">unless exists $vzctl{$subcommand}</td></tr>
 </table>
 </body>
 </html>
