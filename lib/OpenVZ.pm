@@ -39,6 +39,8 @@ use Sub::Exporter;
 use Sub::Exporter::Util 'curry_method';
 use Sub::Exporter::ForMethods 'method_installer';
 
+# VERSION
+
 ############################################################################
 # Public Functions
 
