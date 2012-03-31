@@ -1,4 +1,9 @@
-#!/usr/bin/perl
+#!/usr/bin/perl ## no critic qw( Modules::ProhibitExcessMainComplexity )
+
+## no critic qw( ValuesAndExpressions::ProhibitAccessOfPrivateData Bangs::ProhibitVagueNames ControlStructures::ProhibitDeepNests )
+## no critic qw( ValuesAndExpressions::ProhibitMagicNumbers )
+
+use 5.006;
 
 use strict;
 use warnings;
@@ -6,14 +11,22 @@ use warnings;
 use Test::Most tests => 17458;
 use Test::NoWarnings;
 
+use Carp;
 use Try::Tiny;
 
-use Carp;
-use Data::Dump 'dump';
-
-$ENV{ PATH } = "t/bin:$ENV{PATH}";  # run our test versions of commands
+local $ENV{ PATH } = "t/bin:$ENV{PATH}";  # run our test versions of commands
 
 BEGIN { use_ok( 'OpenVZ::vzctl', ':all' ) }
+
+my @expect_execute = (
+  q{OpenVZ
+OpenVZ.pm},
+  q{},
+  0,
+  ignore(),
+);
+
+cmp_deeply( [ execute({ command => 'ls', params => [ 'lib' ] }) ], \@expect_execute, 'execute worked' );
 
 my %check = do {
 
@@ -23,7 +36,7 @@ my %check = do {
     my $arrayref = [qw( bad1 bad2 )];
     my $hashref  = { bad3 => 4, bad5 => 6 };
     my $coderef  = sub { };
-    my $glob     = do { local *GLOB };
+    my $glob     = do { local *GLOB }; ## no critic qw( Variables::ProhibitLocalVars Variables::RequireInitializationForLocalVars )
     my $globref  = \*GLOB;
 
     my $not_allowed_type = qr/not one of the allowed types/;
@@ -40,9 +53,9 @@ my %check = do {
                 sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
                 sys_tty_config ve_admin
 
-                )
+                ),
         ],
-        'got expected capablity names'
+        'got expected capablity names',
     );
 
     my @good_cap_names = map { ( "$_:on",  "$_:off" ) } @cap_names;
@@ -68,9 +81,9 @@ my %check = do {
                 ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
                 ipt_ttl xt_mac
 
-                )
+                ),
         ],
-        'got expected iptables modules'
+        'got expected iptables modules',
     );
 
     my @iptables_names = map { ( "$_:on", "$_:off" ) } @iptables_modules;
@@ -147,7 +160,7 @@ my %check = do {
                 undef,    $not_allowed_type, '',       $did_not_pass,
                 \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
                 $coderef, $not_allowed_type, $glob,    $not_allowed_type,
-                $globref, $not_allowed_type, @bad_features_names
+                $globref, $not_allowed_type, @bad_features_names,
             ],
         },
 
@@ -273,7 +286,7 @@ my %check = do {
                 applyconfig_map config hostname name netif_add netif_del ostemplate
                 pci_add pci_del private root searchdomain
 
-                )
+                ),
         ],
 
         # SCALAR | ARRAYREF checks
@@ -299,7 +312,7 @@ my %check = do {
                 oomguarpages othersockbuf physpages privvmpages shmpages swappages
                 tcprcvbuf tcpsndbuf vmguarpages
 
-                )
+                ),
         ],
     );
 
@@ -318,8 +331,10 @@ my @global_flags = ( '', 'quiet', 'verbose' );
 
 my %invalid_regex = (
 
+    ## no critic qw( RegularExpressions::ProhibitComplexRegexes )
     invalid_ctid => qr/\QInvalid or unknown container (invalid_ctid): Container(s) not found/,
     invalid_name => qr/\QInvalid or unknown container (invalid_name): CT ID invalid_name is invalid./,
+    ## use critic
 
 );
 
@@ -333,9 +348,9 @@ cmp_bag(
             chkpnt create destroy enter exec exec2 mount quotainit quotaoff quotaon
             restart restore runscript set start status stop umount
 
-            )
+            ),
     ],
-    'got expected known commands'
+    'got expected known commands',
 );
 
 # XXX: need to test subcommand_specs
@@ -351,8 +366,6 @@ for my $cmd ( @known_commands ) {
 
             my %invalid_hash = ( ctid => $ctid );
 
-            my $bad_regex = $invalid_regex{ $ctid };
-
             for my $flag ( @global_flags ) {
 
                 $invalid_hash{ flag } = $flag
@@ -360,18 +373,19 @@ for my $cmd ( @known_commands ) {
 
                 my $info = sprintf '%s %s%s --%s ... -- caught %s', $cmd, ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
 
-                my $bad_ctids_object = OpenVZ::vzctl->new;
+                my $bad_ctids_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
                 isa_ok( $bad_ctids_object, 'OpenVZ::vzctl', 'object created for bad ctids' );
                 throws_ok { $bad_ctids_object->$cmd( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
 
-                no strict 'refs';
+                no strict 'refs'; ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
                 throws_ok { $cmd->( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
 
             }  # end my $flag ( @global_flags )
         }  # end for my $ctid ( @bad_ctids )
 
-        my $ctid = int 100 + rand( 100 );
-        my $name = join '', map { chr( 97 + rand( 26 ) ) } 0 .. ( int rand 20 ) + 1;
+        my $ctid = int 100 + rand 100;
+        my $name = join '',
+            map { chr( 97 + rand 26 ) } 0 .. ( int rand 20 ) + 1; ## no critic qw( CodeLayout::ProhibitParensWithBuiltins )
         my $test = "$ctid,$name";
 
         for my $flag ( @global_flags ) {
@@ -380,23 +394,23 @@ for my $cmd ( @known_commands ) {
 
             my $bad_values = $check{ $parm }{ bad };
 
-            for ( my $ix = 0 ; $ix < @$bad_values ; $ix += 2 ) {
+            for ( my $ix = 0 ; $ix < @$bad_values ; $ix += 2 ) { ## no critic qw( References::ProhibitDoubleSigils )
 
                 my %bad_hash = ( ctid => $ctid, $parm => $bad_values->[$ix] );
 
                 $bad_hash{ flag } = $flag
                     if $flag ne '';
 
-                no warnings 'uninitialized';
+                no warnings 'uninitialized'; ## no critic qw( TestingAndDebugging::ProhibitNoWarnings )
                 my $info = sprintf '%s %s%s --%s %s -- caught bad value',
                     $cmd, ( $flag ? "$flag " : '' ), $ctid, $parm,
                     $bad_values->[$ix];
 
-                my $bad_values_object = OpenVZ::vzctl->new;
+                my $bad_values_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
                 isa_ok( $bad_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
                 throws_ok { $bad_values_object->$cmd( \%bad_hash ) } $bad_values->[ $ix + 1 ], $info;
 
-                no strict 'refs';
+                no strict 'refs'; ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
                 throws_ok { $cmd->( \%bad_hash ) } $bad_values->[ $ix + 1 ], $info;
 
             }  # end for ( my $ix = 0; $ix < @$bad_values ; $ix += 2 )
@@ -405,7 +419,7 @@ for my $cmd ( @known_commands ) {
 
             my $good_values = $check{ $parm }{ good };
 
-            for ( my $ix = 0 ; $ix < @$good_values ; $ix++ ) {
+            for ( my $ix = 0 ; $ix < @$good_values ; $ix++ ) { ## no critic qw( References::ProhibitDoubleSigils )
 
                 my $expected_parm;
 
@@ -445,7 +459,9 @@ for my $cmd ( @known_commands ) {
 
                 } else {
 
+                    ## no critic qw( ValuesAndExpressions::ProhibitInterpolationOfLiterals )
                     carp "Expecting scalar or arrayref for good test values";
+                    ## use critic
 
                 }
 
@@ -456,7 +472,7 @@ for my $cmd ( @known_commands ) {
                 $good_hash{ flag } = $flag
                     if $flag ne '';
 
-                my $good_values_object = OpenVZ::vzctl->new;
+                my $good_values_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
                 isa_ok( $good_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
                 my @object_result = $good_values_object->$cmd( \%good_hash );
 
@@ -466,7 +482,7 @@ for my $cmd ( @known_commands ) {
                 like( $object_result[3], qr/^\d+(?:.\d+)?$/, 'time was reported' );
 
                 my @result;
-                { no strict 'refs'; @result = $cmd->( \%good_hash ) };
+                { no strict 'refs'; @result = $cmd->( \%good_hash ) } ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
 
                 is( $result[0], $expected, "got $expected" );
                 is( $result[1], '',        'got empty stderr' );

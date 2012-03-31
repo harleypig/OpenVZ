@@ -39,12 +39,6 @@ use Sub::Exporter;
 use Sub::Exporter::Util 'curry_method';
 use Sub::Exporter::ForMethods 'method_installer';
 
-my @exports;
-
-# @exports holds the names of functions to be exported.  The easiest way to
-# maintain this is to push the name of the function right before it is
-# defined.
-
 ############################################################################
 # Public Functions
 
@@ -81,9 +75,22 @@ passed on the command line.
 
 {  # Quick! Hide!!
 
-    ## no critic qw( Bangs::ProhibitVagueNames Subroutines::RequireArgUnpacking )
-    my $object;
-    sub new { return bless \$object, ref $_[0] || $_[0] }
+    my @exports;
+
+    # @exports holds the names of functions to be exported.  The easiest way to
+    # maintain this is to push the name of the function right before it is
+    # defined.
+
+    #push @exports, 'new';
+
+    my $object; ## no critic qw( Bangs::ProhibitVagueNames )
+
+    sub new { ## no critic qw( Bangs::ProhibitVagueNames Subroutines::RequireArgUnpacking )
+
+        shift if blessed $_[0] or $_[0] eq __PACKAGE__;
+        return bless \$object, ref $_[0] || $_[0]; ## no critic qw( Bangs::ProhibitVagueNames )
+
+    }
     ## use critic
 
     my %program;
@@ -125,23 +132,23 @@ passed on the command line.
 
     }
 
+############################################################################
+    # Utility Functions - not for general consumption
+
+############################################################################
+    # Setup exporter
+
+    my %exports = map { ( $_ => curry_method ) } @exports;
+
+    my $config = {
+
+        exports   => \%exports,
+        installer => method_installer,
+
+    };
+
+    Sub::Exporter::setup_exporter( $config );
+
 } ## end hiding
-
-############################################################################
-# Utility Functions - not for general consumption
-
-############################################################################
-# Setup exporter
-
-my %exports = map { ( $_ => curry_method ) } @exports;
-
-my $config = {
-
-    exports   => \%exports,
-    installer => method_installer,
-
-};
-
-Sub::Exporter::setup_exporter( $config );
 
 1;

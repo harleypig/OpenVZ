@@ -1,4 +1,4 @@
-package OpenVZ::vzctl;
+package OpenVZ::vzctl; ## no critic qw( NamingConventions::Capitalization )
 
 # ABSTRACT: Call OpenVZ vzctl command from your program
 
@@ -29,26 +29,34 @@ sure how to test them.  Tests are welcome.
 If you want to know what commands and options are available read C<vzctl>s man
 page.  I followed that in creating this module.
 
+=for stopwords applyconfig arrayref avnumproc bootorder config cpulimit cpumask cpus cpuunits ctid CTID dcachesize devnodes
+dgramrcvbuf diskinodes diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize lockedpages manpage nameserver noatime
+numfile numflock numiptent numothersock numproc numpty numsiginfo numtcpsock onboot oomguarpages ostemplate othersockbuf physpages
+privvmpages quotatime quotaugidlimit regex searchdomain setmode shmpages subcommand subcommands swappages tcprcvbuf tcpsndbuf undef
+userpasswd vmguarpages vzctl
+
 =cut
+
+use 5.006;
 
 use strict;
 use warnings;
 
-#use namespace::autoclean;
+use namespace::autoclean;
 
 use Carp;
+use List::MoreUtils qw( any );
 use OpenVZ ':all';
 use Params::Validate ':all';
 use Regexp::Common qw( URI net );
 use Scalar::Util 'blessed';
 use Sub::Exporter;
 
+use parent 'OpenVZ';
+
 # VERSION
 
-my ( @exports, $AUTOLOAD );
-
-# These are imported from OpenVZ ':all'.
-push @exports, 'execute';
+our $AUTOLOAD;
 
 ############################################################################
 # Base structure describing the subcommands and their arguments.
@@ -616,6 +624,10 @@ optional.
 
 {  # Quick, hide in here! And don't make a *sound*!
 
+    my @vzctl_exports;
+
+    push @vzctl_exports, 'execute'; # imported from OpenVZ
+
     my %vzctl = (
 
         destroy   => [],
@@ -649,7 +661,7 @@ optional.
                 [searchdomain] [setmode] [shmpages] [swappages] [tcprcvbuf] [tcpsndbuf]
                 [userpasswd] [vmguarpages]
 
-                )
+                ),
         ],
 
     );
@@ -662,7 +674,7 @@ Returns a list of known vzctl commands
 
 =cut
 
-    push @exports, 'known_commands';
+    push @vzctl_exports, 'known_commands';
 
     sub known_commands { return keys %vzctl }
 
@@ -684,7 +696,7 @@ Returns a list of known capabilities for the C<vzctl set capability> option.
 
     );
 
-    push @exports, 'capabilities';
+    push @vzctl_exports, 'capabilities';
 
     sub capabilities { return wantarray ? @capabilities : \@capabilities }
 
@@ -706,7 +718,7 @@ Returns a list of known iptables modules for the C<vzctl set iptables> option.
 
     );
 
-    push @exports, 'iptables_modules';
+    push @vzctl_exports, 'iptables_modules';
 
     sub iptables_modules { return wantarray ? @iptables_modules : \@iptables_modules }
 
@@ -720,7 +732,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
     my @features = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
 
-    push @exports, 'features';
+    push @vzctl_exports, 'features';
 
     sub features { return wantarray ? @features : \@features }
 
@@ -751,12 +763,7 @@ Returns a list of known features for the C<vzctl set features> option.
             userpasswd => { type => SCALAR, regex => qr{^(?:\w+):(?:\w+)$} },
             ## use critic
 
-            applyconfig => {
-                type      => SCALAR,
-                callbacks => {
-                    'do not want empty strings' => sub { return $_[0] ne '' }
-                }
-            },
+            applyconfig => { type => SCALAR, callbacks => { 'do not want empty strings' => sub { return $_[0] ne '' }, }, },
 
             command => {
                 type      => SCALAR | ARRAYREF,
@@ -767,7 +774,7 @@ Returns a list of known features for the C<vzctl set features> option.
                             ? do { $_[0] ne '' }
                             : do { defined $_[0]->[0] && $_[0]->[0] ne '' };
 
-                        }
+                    },
                 },
             },
 
@@ -794,8 +801,8 @@ Returns a list of known features for the C<vzctl set features> option.
                         #      figure out how to do this the right way this will be an atomic
                         #      operation. It's either all good, or it's not.
 
-                        }
-                }
+                    },
+                },
             },
 
             ipdel => {
@@ -809,13 +816,13 @@ Returns a list of known features for the C<vzctl set features> option.
                         # see notes for ipadd
                         no warnings 'uninitialized'; ## no critic qw( TestingAndDebugging::ProhibitNoWarnings )
                         my @bad_ips = grep { ! /^$RE{net}{IPv4}$/ } @ips;
-                        return 1 if grep { /^all$/i } @bad_ips;
+                        return 1 if any { $_ eq 'all' } @bad_ips;
                         return ! @bad_ips;
 
                         #NOTE: See ipadd note.
 
-                        }
-                }
+                    },
+                },
             },
 
             iptables => {
@@ -845,8 +852,8 @@ Returns a list of known features for the C<vzctl set features> option.
 
                         #NOTE: See ipadd note.
 
-                        }
-                }
+                    },
+                },
             },
 
             create_dumpfile => {
@@ -856,16 +863,11 @@ Returns a list of known features for the C<vzctl set features> option.
                         return if $_[0] eq '';
                         my $file = sprintf 'file://localhost/%s', +shift;
                         $file =~ /^$RE{URI}{file}$/;
-                        }
-                }
-            },
-
-            restore_dumpfile => {
-                type      => SCALAR,
-                callbacks => {
-                    'does file exist?' => sub { -e ( +shift ) }
+                    },
                 },
             },
+
+            restore_dumpfile => { type => SCALAR, callbacks => { 'does file exist?' => sub { -e ( +shift ) }, }, },
 
             devnodes => {
                 type      => SCALAR,
@@ -878,8 +880,8 @@ Returns a list of known features for the C<vzctl set features> option.
                         $device = "/dev/$device";
                         return -e $device;
 
-                        }
-                }
+                    },
+                },
             },
 
         );
@@ -892,7 +894,7 @@ Returns a list of known features for the C<vzctl set features> option.
                     applyconfig_map config hostname name netif_add netif_del ostemplate
                     pci_add pci_del private root searchdomain
 
-                    )
+                    ),
             ],
 
             #XXX: Need to make 'config', 'ostemplate', 'private' and 'root' more
@@ -922,7 +924,7 @@ Returns a list of known features for the C<vzctl set features> option.
                     oomguarpages othersockbuf physpages privvmpages shmpages swappages
                     tcprcvbuf tcpsndbuf vmguarpages
 
-                    )
+                    ),
             ],
         );
 
@@ -948,7 +950,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
     my %hash = ( command => 'vzctl' );
 
-    push @exports, 'vzctl';
+    push @vzctl_exports, 'vzctl';
 
     sub vzctl { ## no critic qw( Subroutines::RequireArgUnpacking )
 
@@ -978,7 +980,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
                 push @params, ( $arg_name, $_ ) for @{ $arg{ $p } };
 
-            } elsif ( $ref eq undef ) {
+            } elsif ( $ref eq '' ) {
 
                 push @params, $arg_name;
 
@@ -1005,7 +1007,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
 ####################################
 
-    push @exports, 'subcommand_specs';
+    push @vzctl_exports, 'subcommand_specs';
 
     sub subcommand_specs { ## no critic qw( Subroutines::RequireArgUnpacking )
 
@@ -1033,7 +1035,7 @@ Returns a list of known features for the C<vzctl set features> option.
                     unless exists $validate{ $spec };
                 ## use critic
 
-                next if grep { /^-$spec$/ } @args;
+                next if any { /^-$spec$/ } @args;
 
                 $spec_hash{ $spec } = $validate{ $spec };
 
@@ -1093,7 +1095,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
         my ( $stdout, $stderr, $syserr ) = execute( { command => 'vzlist', params => [ '-Ho', 'ctid,name', $check_ctid ], } );
 
-        ## no critic qw( ErrorHandling::RequireUseOfExceptions )
+        ## no critic qw( ErrorHandling::RequireUseOfExceptions ValuesAndExpressions::ProhibitMagicNumbers )
         croak 'vzlist did not execute'
             if $syserr == -1;
 
@@ -1144,7 +1146,7 @@ Returns a list of known features for the C<vzctl set features> option.
             $arg{ subcommand } = $subcommand;
             vzctl( \%arg );
 
-            }
+        };
     } ## end sub _generate_subcommand
 
     # for oop stuff
@@ -1161,31 +1163,33 @@ Returns a list of known features for the C<vzctl set features> option.
         carp "$subcommand is not a valid method"
             unless exists $vzctl{ $subcommand };
 
-        no strict 'refs'; ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
+        ## no critic qw( TestingAndDebugging::ProhibitNoStrict References::ProhibitDoubleSigils )
+        no strict 'refs';
         *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
 
         goto &$AUTOLOAD;
+        ## use critic
 
-    }
+    } ## end sub AUTOLOAD
 
     # AUTOLOAD assumes DESTROY exists
     DESTROY { }
 
-    push @exports, ( $_ => \&_generate_subcommand ) for keys %vzctl;
-
-}  # Ok, they're gone.  You can come out now.  Guys?  Hello?
+    push @vzctl_exports, ( $_ => \&_generate_subcommand ) for keys %vzctl;
 
 ############################################################################
-# Setup exporter
+    # Setup exporter
 
-my $config = {
+    my $config = {
 
-    exports    => \@exports,
-    groups     => {},
-    collectors => [],
+        exports    => \@vzctl_exports,
+        groups     => {},
+        collectors => [],
 
-};
+    };
 
-Sub::Exporter::setup_exporter( $config );
+    Sub::Exporter::setup_exporter( $config );
+
+}  # Ok, they're gone.  You can come out now.  Guys?  Hello?
 
 1;
