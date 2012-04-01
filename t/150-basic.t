@@ -8,7 +8,7 @@ use 5.006;
 use strict;
 use warnings;
 
-use Test::Most tests => 17458;
+use Test::Most tests => 17459;
 use Test::NoWarnings;
 
 use Carp;
@@ -16,17 +16,17 @@ use Try::Tiny;
 
 local $ENV{ PATH } = "t/bin:$ENV{PATH}";  # run our test versions of commands
 
-BEGIN { use_ok( 'OpenVZ::vzctl', ':all' ) }
+BEGIN { use_ok( 'OpenVZ::Vzctl', ':all' ) }
 
 my @expect_execute = (
-  q{OpenVZ
+    q{OpenVZ
 OpenVZ.pm},
-  q{},
-  0,
-  ignore(),
+    q{},
+    0,
+    ignore(),
 );
 
-cmp_deeply( [ execute({ command => 'ls', params => [ 'lib' ] }) ], \@expect_execute, 'execute worked' );
+cmp_deeply( [ execute( { command => 'ls', params => ['lib'] } ) ], \@expect_execute, 'execute worked' );
 
 my %check = do {
 
@@ -373,8 +373,8 @@ for my $cmd ( @known_commands ) {
 
                 my $info = sprintf '%s %s%s --%s ... -- caught %s', $cmd, ( $flag ? "--$flag " : '' ), $ctid, $parm, $ctid;
 
-                my $bad_ctids_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
-                isa_ok( $bad_ctids_object, 'OpenVZ::vzctl', 'object created for bad ctids' );
+                my $bad_ctids_object = OpenVZ::Vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
+                isa_ok( $bad_ctids_object, 'OpenVZ::Vzctl', 'object created for bad ctids' );
                 throws_ok { $bad_ctids_object->$cmd( \%invalid_hash ) } $invalid_regex{ $ctid }, $info;
 
                 no strict 'refs'; ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
@@ -406,8 +406,8 @@ for my $cmd ( @known_commands ) {
                     $cmd, ( $flag ? "$flag " : '' ), $ctid, $parm,
                     $bad_values->[$ix];
 
-                my $bad_values_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
-                isa_ok( $bad_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
+                my $bad_values_object = OpenVZ::Vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
+                isa_ok( $bad_values_object, 'OpenVZ::Vzctl', 'object created for bad values' );
                 throws_ok { $bad_values_object->$cmd( \%bad_hash ) } $bad_values->[ $ix + 1 ], $info;
 
                 no strict 'refs'; ## no critic qw( TestingAndDebugging::ProhibitNoStrict )
@@ -472,8 +472,8 @@ for my $cmd ( @known_commands ) {
                 $good_hash{ flag } = $flag
                     if $flag ne '';
 
-                my $good_values_object = OpenVZ::vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
-                isa_ok( $good_values_object, 'OpenVZ::vzctl', 'object created for bad values' );
+                my $good_values_object = OpenVZ::Vzctl->new; ## no critic qw( Modules::RequireExplicitInclusion )
+                isa_ok( $good_values_object, 'OpenVZ::Vzctl', 'object created for bad values' );
                 my @object_result = $good_values_object->$cmd( \%good_hash );
 
                 is( $object_result[0], $expected, "got $expected" );

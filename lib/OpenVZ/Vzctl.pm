@@ -1,4 +1,4 @@
-package OpenVZ::vzctl; ## no critic qw( NamingConventions::Capitalization )
+package OpenVZ::Vzctl;
 
 # ABSTRACT: Call OpenVZ vzctl command from your program
 
@@ -626,7 +626,7 @@ optional.
 
     my @vzctl_exports;
 
-    push @vzctl_exports, 'execute'; # imported from OpenVZ
+    push @vzctl_exports, 'execute';  # imported from OpenVZ
 
     my %vzctl = (
 

@@ -34,4 +34,5 @@ profile-strictness = warn
 [-Subroutines::ProhibitCallsToUnexportedSubs]
 [-Tics::ProhibitLongLines]
 [-ValuesAndExpressions::ProhibitEmptyQuotes]
+[-ValuesAndExpressions::ProhibitImplicitNewlines]
 [-ValuesAndExpressions::RequireNumberSeparators]
