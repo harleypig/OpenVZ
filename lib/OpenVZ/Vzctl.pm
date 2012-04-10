@@ -10,24 +10,21 @@ package OpenVZ::Vzctl;
 
 =head1 SYNOPSIS
 
-  use OpenVZ::vzctl;
+  use OpenVZ::Vzctl;
 
   #XXX: need to add more examples
 
 =head1 DESCRIPTION
 
-This program is a simple (or not so simple in some cases) wrapper around the
-'vzctl' program.  It will do some basic verification on options and parameters
-but it will not (currently) do sanity checks on the values.
+This program is a simple (or not so simple in some cases) wrapper around the 'vzctl' program.  It will do some basic verification on
+options and parameters but it will not (currently) do sanity checks on the values.
 
 =head2 NOTE
 
-All of the commands for vzctl are implemented and all of the options for each
-command is provided for, but some commands and options I don't use so I'm not
-sure how to test them.  Tests are welcome.
+All of the commands for vzctl are implemented and all of the options for each command is provided for, but some commands and options
+I don't use so I'm not sure how to test them.  Tests are welcome.
 
-If you want to know what commands and options are available read C<vzctl>s man
-page.  I followed that in creating this module.
+If you want to know what commands and options are available read C<vzctl>s man page.  I followed that in creating this module.
 
 =for stopwords applyconfig arrayref avnumproc bootorder config cpulimit cpumask cpus cpuunits ctid CTID dcachesize devnodes
 dgramrcvbuf diskinodes diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize lockedpages manpage nameserver noatime
@@ -69,14 +66,12 @@ C<chkpnt> expects a hash reference with the following keys and values.
 
 =item ctid (required)
 
-Can be either a CTID or name. The command C<vzlist -Ho name,ctid value> is
-used to determine if C<value> is a valid identifier.
+Can be either a CTID or name. The command C<vzlist -Ho name,ctid value> is used to determine if C<value> is a valid identifier.
 
 =item create_dumpfile (optional)
 
-Expects a scalar that looks like a file but does not check if it's possible to
-write to the specified file.  L<Regexp::Common>'s C<URI> regex is used to
-determine what looks like a file.
+Expects a scalar that looks like a file but does not check if it's possible to write to the specified file.  L<Regexp::Common>'s
+C<URI> regex is used to determine what looks like a file.
 
 =back
 
@@ -102,8 +97,8 @@ Expects a scalar, but doesn't check validity of value.
 
 =item ipadd (optional)
 
-Expects a scalar or a reference to an array. L<Regexp::Common>'s C<net IPv4> regex
-is used to determine if the values are valid looking ips.
+Expects a scalar or a reference to an array. L<Regexp::Common>'s C<net IPv4> regex is used to determine if the values are valid
+looking ips.
 
 =item ostemplate (optional)
 
@@ -147,8 +142,7 @@ See C<chkpnt> for details.
 
 =item exec (optional)
 
-Expects a scalar or reference to an array but doesn't check for the validity
-of the command.
+Expects a scalar or reference to an array but doesn't check for the validity of the command.
 
 =back
 
@@ -166,8 +160,7 @@ See C<chkpnt> for details.
 
 =item command (required)
 
-Expects a scalar or a reference to an array but doesn't check for the validity
-of the command.
+Expects a scalar or a reference to an array but doesn't check for the validity of the command.
 
 =back
 
@@ -292,8 +285,7 @@ See C<chkpnt> for details.
 
 =item script (required)
 
-Expects a scalar or a reference to an array but doesn't check for the validity
-of the script.
+Expects a scalar or a reference to an array but doesn't check for the validity of the script.
 
 =back
 
@@ -377,9 +369,8 @@ Expects a scalar. No other validation is performed.
 
 =item vmguarpages
 
-Expects an integer followed by an optional 'g', 'm', 'k' or 'p', followed
-optionally by a colon and an integer and an optional 'g', 'm', 'k' or 'p'.
-E.g., 5M or 5M:15M.
+Expects an integer followed by an optional 'g', 'm', 'k' or 'p', followed optionally by a colon and an integer and an optional 'g',
+'m', 'k' or 'p'.  E.g., 5M or 5M:15M.
 
 =item bootorder
 
@@ -399,11 +390,9 @@ Expects an integer.
 
 Expects one of the following capabilities
 
-    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-    lease linux_immutable mknod net_admin net_bind_service net_broadcast
-    net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-    sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-    sys_tty_config ve_admin
+    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill lease linux_immutable mknod net_admin net_bind_service
+    net_broadcast net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot sys_module sys_nice sys_pacct sys_ptrace
+    sys_rawio sys_resource sys_time sys_tty_config ve_admin
 
 joined with either 'on' or 'off' with a colon. E.g., 'chown:on'.
 
@@ -445,22 +434,18 @@ Expects a single integer from 0 to 7.
 
 =item ipdel
 
-Expects either an array reference or a space separated list of ips to be added
-or deleted. L<Regexp::Common>'s C<net IPv4> regex is used to determine if the
-ips look valid.  No other validation is performed.
+Expects either an array reference or a space separated list of ips to be added or deleted. L<Regexp::Common>'s C<net IPv4> regex is
+used to determine if the ips look valid.  No other validation is performed.
 
 C<ipdel> also accepts 'all' to delete all ips.
 
 =item iptables
 
-Expects either an array reference or space separated list of one or more of
-the following
+Expects either an array reference or space separated list of one or more of the following
 
-    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-    iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-    ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-    ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-    ipt_ttl xt_mac
+    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc iptable_filter iptable_mangle iptable_nat ipt_conntrack
+    ipt_helper ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss
+    ipt_TCPMSS ipt_tos ipt_TOS ipt_ttl xt_mac
 
 =item nameserver
 
@@ -478,8 +463,7 @@ Expects either 'restart' or 'ignore'.
 
 =item userpasswd
 
-Expects two strings separated by a colon.  No other validation is performed on
-the value.
+Expects two strings separated by a colon.  No other validation is performed on the value.
 
 =back
 
@@ -551,8 +535,8 @@ See the C<vzctl> manpage for information on the C<umount> command.
 
 C<vzctl> is used to call C<execute> with vzctl as the specific command.
 
-C<vzctl> expects a hashref with the required keys C<subcommand> and C<ctid>
-and does B<NOT> check the validity of any remaining keys.
+C<vzctl> expects a hashref with the required keys C<subcommand> and C<ctid> and does B<NOT> check the validity of any remaining
+keys.
 
 A C<flag> key is optional and accepts C<quiet> and C<verbose>.
 
@@ -560,37 +544,30 @@ An example of a valid call would be
 
   my $result = vzctl({ subcommand => 'set', 'ctid' => 101, ipadd => '1.2.3.4', save => undef });
 
-In this case, C<set> and C<101> would be validated, but C<1.2.3.4> and the
-value for C<save> would just be passed along to C<execute> as is.
+In this case, C<set> and C<101> would be validated, but C<1.2.3.4> and the value for C<save> would just be passed along to
+C<execute> as is.
 
-The C<undef> value in C<save> is a hint to C<vzctl> that the C<save> parameter
-should be passed as a switch (i.e., --save instead of --save undef).
+The C<undef> value in C<save> is a hint to C<vzctl> that the C<save> parameter should be passed as a switch (i.e., --save instead of
+--save undef).
 
-When a value is an arrayref, e.g., ipadd => [qw( 1.2.3.4 2.3.4.5 )]. C<vzctl>
-will send the same parameter multiple times.  The previous example would
-become '--ipadd 1.2.3.4 --ipadd 2.3.4.5'.
+When a value is an arrayref, e.g., ipadd => [qw( 1.2.3.4 2.3.4.5 )]. C<vzctl> will send the same parameter multiple times.  The
+previous example would become '--ipadd 1.2.3.4 --ipadd 2.3.4.5'.
 
-You're probably better off if you use the functions designed for
-a specific command unless you know what you're doing.
+You're probably better off if you use the functions designed for a specific command unless you know what you're doing.
 
 =function subcommand_specs
 
-C<subcommand_specs> expects a list.  The first element will be checked against
-a list of known subcommands for vzctl.
+C<subcommand_specs> expects a list.  The first element will be checked against a list of known subcommands for vzctl.
 
-If the first element is a known subcommand a predefined hashref will be
-instantiated.  Any following elements will be treated as additional
-specification names to be included.  Duplicates will be silently ignored.  If
-an element is preceded by a dash (-), that element will be removed from the
-hashref.
+If the first element is a known subcommand a predefined hashref will be instantiated.  Any following elements will be treated as
+additional specification names to be included.  Duplicates will be silently ignored.  If an element is preceded by a dash (-), that
+element will be removed from the hashref.
 
-If the first element is not a known subcommand a hashref will be created with
-the specification names provided, including the first element.  Using a dash
-makes no sense in this context, but will not cause any problems.
+If the first element is not a known subcommand a hashref will be created with the specification names provided, including the first
+element.  Using a dash makes no sense in this context, but will not cause any problems.
 
-C<subcommand_specs> will return the hashref described previously that
-can be used in the C<spec> option of C<Params::Validate>'s C<validate_with>
-function.  E.g., the call
+C<subcommand_specs> will return the hashref described previously that can be used in the C<spec> option of C<Params::Validate>'s
+C<validate_with> function.  E.g., the call
 
   my $spec = subcommand_specs( 'stop' );
 
@@ -609,18 +586,14 @@ would yield
 
   $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
 
-If a parameter is surrounded with square brackets ( [] ) the parameter is made
-optional.
+If a parameter is surrounded with square brackets ( [] ) the parameter is made optional.
 
 =cut
 
-# Every subcommand requires ctid and has the optional flag of C<quiet> or
-# C<verbose>.  Though these flags are mutually exclusive, C<vzctl> will accept
-# both at the same time.  Results are undefined when using both flag at the
-# same time.
+# Every subcommand requires ctid and has the optional flag of C<quiet> or C<verbose>.  Though these flags are mutually exclusive,
+# C<vzctl> will accept both at the same time.  Results are undefined when using both flag at the same time.
 
-# Surrounding a paremeter with square brackets ( [parm] ) will make the parm
-# optional in C<subcommand_specs>.
+# Surrounding a paremeter with square brackets ( [parm] ) will make the parm optional in C<subcommand_specs>.
 
 {  # Quick, hide in here! And don't make a *sound*!
 
@@ -677,6 +650,31 @@ Returns a list of known vzctl commands
     push @vzctl_exports, 'known_commands';
 
     sub known_commands { return keys %vzctl }
+
+####################################
+
+=function known_options
+
+Given a command, returns a list of known options
+
+=cut
+
+    push @vzctl_exports, 'known_options';
+
+    my $commands_rx = join q{|}, keys %vzctl;
+
+    sub known_options { ## no critic qw( Subroutines::RequireArgUnpacking )
+
+        #my @spec; $spec[0] = { type => SCALAR, regex => qr/^$commands_rx$/ };
+        my @spec = ( { type => SCALAR, regex => qr/^$commands_rx$/ } );
+
+        my @arg = validate_with( params => \@_, spec => \@spec );
+
+        my @options = ( 'flag', 'ctid', @{ $vzctl{ $arg[0] } } );
+
+        return wantarray ? @options : \@options;
+
+    }
 
 ####################################
 

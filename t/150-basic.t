@@ -18,313 +18,303 @@ local $ENV{ PATH } = "t/bin:$ENV{PATH}";  # run our test versions of commands
 
 BEGIN { use_ok( 'OpenVZ::Vzctl', ':all' ) }
 
-my @expect_execute = (
-    q{OpenVZ
-OpenVZ.pm},
-    q{},
-    0,
-    ignore(),
-);
-
-cmp_deeply( [ execute( { command => 'ls', params => ['lib'] } ) ], \@expect_execute, 'execute worked' );
-
-my %check = do {
-
-    # Basic types to check for:
-
-    my $scalar   = 'scalar';
-    my $arrayref = [qw( bad1 bad2 )];
-    my $hashref  = { bad3 => 4, bad5 => 6 };
-    my $coderef  = sub { };
-    my $glob     = do { local *GLOB }; ## no critic qw( Variables::ProhibitLocalVars Variables::RequireInitializationForLocalVars )
-    my $globref  = \*GLOB;
-
-    my $not_allowed_type = qr/not one of the allowed types/;
-    my $did_not_pass     = qr/did not pass/;
-
-    my @cap_names = capabilities();
-
-    cmp_bag(
-        \@cap_names, [ qw(
-
-                chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
-                lease linux_immutable mknod net_admin net_bind_service net_broadcast
-                net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
-                sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
-                sys_tty_config ve_admin
-
-                ),
-        ],
-        'got expected capablity names',
-    );
-
-    my @good_cap_names = map { ( "$_:on",  "$_:off" ) } @cap_names;
-    my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
-    push @bad_cap_names, 'justallaroundbad', $did_not_pass;
-
-    my @features_names = features();
-
-    cmp_bag( \@features_names, [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)], 'got expected features names' );
-
-    my @good_features_names = map { ( "$_:on",  "$_:off" ) } @features_names;
-    my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) } @features_names;
-    push @bad_features_names, 'justallaroundbad', $did_not_pass;
-
-    my @iptables_modules = iptables_modules();
-
-    cmp_bag(
-        \@iptables_modules, [ qw(
-
-                ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
-                iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
-                ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
-                ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
-                ipt_ttl xt_mac
-
-                ),
-        ],
-        'got expected iptables modules',
-    );
-
-    my @iptables_names = map { ( "$_:on", "$_:off" ) } @iptables_modules;
-
-    my %hash = (
-
-        applyconfig => {
-            good => [$scalar],
-            bad  => [
-                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,     $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        avnumproc => {
-            good => [ 100, '101g', '102m', '103k', '104p', '105:106', '107g:108m', '109k:110p' ],
-            bad  => [
-                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,     $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        bootorder => {
-            good => [1],
-            bad  => [
-                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,     $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        capability => {
-            good => \@good_cap_names,
-            bad  => [
-                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,     $not_allowed_type, $globref, $not_allowed_type, @bad_cap_names,
-            ],
-        },
-
-        command => {
-            good => [ 'good', [qw( one two )] ],
-            bad => [
-                undef, $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                [],    $did_not_pass,     $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob, $not_allowed_type, $globref, $not_allowed_type,
-            ],
-            bare => 1,  # --command should not appear in the actual command
-        },
-
-        cpumask => {
-            good => [ 1, '2:3', 'all' ],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
-                $globref, $not_allowed_type,
-            ],
-        },
-
-        devices => {
-            good => [ 'none', 'all:r', 'all:w', 'all:rw', 'b:1:2', 'c:3:4' ],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
-                $globref, $not_allowed_type, 'all',    $did_not_pass,
-            ],
-        },
-
-        features => {
-            good => \@good_features_names,
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
-                $globref, $not_allowed_type, @bad_features_names,
-            ],
-        },
-
-        force => {
-            good => [undef],
-            bad  => [
-                $scalar,  $not_allowed_type, \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,    $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        ioprio => {
-            good => [ 0 .. 7 ],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
-                $globref, $not_allowed_type, 8,        $did_not_pass,
-            ],
-        },
-
-        onboot => {
-            good => [qw( yes no )],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        setmode => {
-            good => [qw( restart ignore )],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        #    userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
-        userpasswd => {
-            good => ['joeuser:seekrit'],
-            bad  => [
-                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
-                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,    $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        ipadd => {
-            good => [ '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
-            bad => [
-                undef,    $not_allowed_type, '',          $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
-                [],       $did_not_pass,     $hashref,    $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
-                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
-                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
-            ],
-        },
-
-        ipdel => {
-            good => [ 'all', '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
-            bad => [
-                undef,    $not_allowed_type, '',          $did_not_pass,
-                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
-                [],       $did_not_pass,     $hashref,    $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
-                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
-                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
-            ],
-        },
-
-        iptables => {
-            good => \@iptables_names,
-            bad  => [
-                undef, $not_allowed_type, '', $did_not_pass, $scalar, $did_not_pass,
-                \$scalar, $not_allowed_type, [], $did_not_pass, $arrayref, $did_not_pass,
-                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob, $not_allowed_type,
-                $globref, $not_allowed_type,
-            ],
-        },
-
-        create_dumpfile => {
-            good => ['/tmp/testfile'],
-            bad  => [
-                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
-                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
-                $glob,     $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-
-        restore_dumpfile => {
-            good => ['/dev/urandom'],
-            bad  => [
-                undef,                                          $not_allowed_type,
-                '',                                             $did_not_pass,
-                \$scalar,                                       $not_allowed_type,
-                $arrayref,                                      $not_allowed_type,
-                $hashref,                                       $not_allowed_type,
-                $coderef,                                       $not_allowed_type,
-                $glob,                                          $not_allowed_type,
-                $globref,                                       $not_allowed_type,
-                '/why/do/you/have/a/path/that/looks/like/this', $did_not_pass,
-            ],
-        },
-
-        #    devnodes => { callbacks => { 'setting access to devnode' => sub {
-        devnodes => {
-            good => [qw( none urandom:r urandom:w urandom:q urandom:rw urandom:rq urandom:wq )],
-            bad  => [
-                undef,    $not_allowed_type, '',        $did_not_pass,     $scalar,  $did_not_pass,
-                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type, $hashref, $not_allowed_type,
-                $coderef, $not_allowed_type, $glob,     $not_allowed_type, $globref, $not_allowed_type,
-            ],
-        },
-    );
-
-    my %same = (
-
-        # SCALAR checks
-        applyconfig => [ qw(
-
-                applyconfig_map config hostname name netif_add netif_del ostemplate
-                pci_add pci_del private root searchdomain
-
-                ),
-        ],
-
-        # SCALAR | ARRAYREF checks
-        command => [qw( exec script )],
-
-        # UNDEF checks
-        force => [qw( save wait )],
-
-        # INT checks
-        bootorder => [qw( cpulimit cpus cpuunits quotatime quotaugidlimit )],
-
-        # yes or no checks
-        onboot => [qw( disabled noatime )],
-
-        # ip checks
-        ipadd => [qw( nameserver )],
-
-        # hard|soft limits
-        avnumproc => [ qw(
-
-                dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
-                numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
-                oomguarpages othersockbuf physpages privvmpages shmpages swappages
-                tcprcvbuf tcpsndbuf vmguarpages
-
-                ),
-        ],
-    );
-
-    for my $key ( keys %same ) {
-
-        $hash{ $_ } = $hash{ $key } for @{ $same{ $key } };
-
-    }
-
-    %hash;
-
-};
+#my %check = do {
+#
+#    # Basic types to check for:
+#
+#    my $scalar   = 'scalar';
+#    my $arrayref = [qw( bad1 bad2 )];
+#    my $hashref  = { bad3 => 4, bad5 => 6 };
+#    my $coderef  = sub { };
+#    my $glob     = do { local *GLOB }; ## no critic qw( Variables::ProhibitLocalVars Variables::RequireInitializationForLocalVars )
+#    my $globref  = \*GLOB;
+#
+#    my $not_allowed_type = qr/not one of the allowed types/;
+#    my $did_not_pass     = qr/did not pass/;
+#
+#    my @cap_names = capabilities();
+#
+#    cmp_bag(
+#        \@cap_names, [ qw(
+#
+#                chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill
+#                lease linux_immutable mknod net_admin net_bind_service net_broadcast
+#                net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot
+#                sys_module sys_nice sys_pacct sys_ptrace sys_rawio sys_resource sys_time
+#                sys_tty_config ve_admin
+#
+#                ),
+#        ],
+#        'got expected capablity names',
+#    );
+#
+#    my @good_cap_names = map { ( "$_:on",  "$_:off" ) } @cap_names;
+#    my @bad_cap_names  = map { ( "$_:bad", $did_not_pass ) } @cap_names;
+#    push @bad_cap_names, 'justallaroundbad', $did_not_pass;
+#
+#    my @features_names = features();
+#
+#    cmp_bag( \@features_names, [qw( sysfs nfs sit ipip ppp ipgre bridge nfsd)], 'got expected features names' );
+#
+#    my @good_features_names = map { ( "$_:on",  "$_:off" ) } @features_names;
+#    my @bad_features_names  = map { ( "$_:bad", $did_not_pass ) } @features_names;
+#    push @bad_features_names, 'justallaroundbad', $did_not_pass;
+#
+#    my @iptables_modules = iptables_modules();
+#
+#    cmp_bag(
+#        \@iptables_modules, [ qw(
+#
+#                ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc
+#                iptable_filter iptable_mangle iptable_nat ipt_conntrack ipt_helper
+#                ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent
+#                ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss ipt_TCPMSS ipt_tos ipt_TOS
+#                ipt_ttl xt_mac
+#
+#                ),
+#        ],
+#        'got expected iptables modules',
+#    );
+#
+#    my @iptables_names = map { ( "$_:on", "$_:off" ) } @iptables_modules;
+#
+#    my %hash = (
+#
+#        applyconfig => {
+#            good => [$scalar],
+#            bad  => [
+#                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,     $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        avnumproc => {
+#            good => [ 100, '101g', '102m', '103k', '104p', '105:106', '107g:108m', '109k:110p' ],
+#            bad  => [
+#                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,     $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        bootorder => {
+#            good => [1],
+#            bad  => [
+#                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,     $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        capability => {
+#            good => \@good_cap_names,
+#            bad  => [
+#                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,     $not_allowed_type, $globref, $not_allowed_type, @bad_cap_names,
+#            ],
+#        },
+#
+#        command => {
+#            good => [ 'good', [qw( one two )] ],
+#            bad => [
+#                undef, $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                [],    $did_not_pass,     $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob, $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#            bare => 1,  # --command should not appear in the actual command
+#        },
+#
+#        cpumask => {
+#            good => [ 1, '2:3', 'all' ],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+#                $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        devices => {
+#            good => [ 'none', 'all:r', 'all:w', 'all:rw', 'b:1:2', 'c:3:4' ],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+#                $globref, $not_allowed_type, 'all',    $did_not_pass,
+#            ],
+#        },
+#
+#        features => {
+#            good => \@good_features_names,
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,
+#                \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
+#                $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+#                $globref, $not_allowed_type, @bad_features_names,
+#            ],
+#        },
+#
+#        force => {
+#            good => [undef],
+#            bad  => [
+#                $scalar,  $not_allowed_type, \$scalar, $not_allowed_type, $hashref, $not_allowed_type,
+#                $coderef, $not_allowed_type, $glob,    $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        ioprio => {
+#            good => [ 0 .. 7 ],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob,    $not_allowed_type,
+#                $globref, $not_allowed_type, 8,        $did_not_pass,
+#            ],
+#        },
+#
+#        onboot => {
+#            good => [qw( yes no )],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+#                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,    $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        setmode => {
+#            good => [qw( restart ignore )],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+#                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,    $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        #    userpasswd  => { regex     => qr/^(?:\w+):(?:\w+)$/ },
+#        userpasswd => {
+#            good => ['joeuser:seekrit'],
+#            bad  => [
+#                undef,    $not_allowed_type, '',       $did_not_pass,     $scalar,  $did_not_pass,
+#                \$scalar, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,    $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        ipadd => {
+#            good => [ '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
+#            bad => [
+#                undef,    $not_allowed_type, '',          $did_not_pass,
+#                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
+#                [],       $did_not_pass,     $hashref,    $not_allowed_type,
+#                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
+#                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
+#                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
+#            ],
+#        },
+#
+#        ipdel => {
+#            good => [ 'all', '1.2.3.4', [qw( 1.2.3.4 2.3.4.5 )] ],
+#            bad => [
+#                undef,    $not_allowed_type, '',          $did_not_pass,
+#                $scalar,  $did_not_pass,     \$scalar,    $not_allowed_type,
+#                [],       $did_not_pass,     $hashref,    $not_allowed_type,
+#                $coderef, $not_allowed_type, $glob,       $not_allowed_type,
+#                $globref, $not_allowed_type, '300.1.2.3', $did_not_pass,
+#                [qw( 1.2.3.4 300.1.2.3 )], $did_not_pass, [ qw( 1.2.3.4 2.3.4.5 ), '' ], $did_not_pass,
+#            ],
+#        },
+#
+#        iptables => {
+#            good => \@iptables_names,
+#            bad  => [
+#                undef, $not_allowed_type, '', $did_not_pass, $scalar, $did_not_pass,
+#                \$scalar, $not_allowed_type, [], $did_not_pass, $arrayref, $did_not_pass,
+#                $hashref, $not_allowed_type, $coderef, $not_allowed_type, $glob, $not_allowed_type,
+#                $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        create_dumpfile => {
+#            good => ['/tmp/testfile'],
+#            bad  => [
+#                undef,     $not_allowed_type, '',       $did_not_pass,     \$scalar, $not_allowed_type,
+#                $arrayref, $not_allowed_type, $hashref, $not_allowed_type, $coderef, $not_allowed_type,
+#                $glob,     $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#
+#        restore_dumpfile => {
+#            good => ['/dev/urandom'],
+#            bad  => [
+#                undef,                                          $not_allowed_type,
+#                '',                                             $did_not_pass,
+#                \$scalar,                                       $not_allowed_type,
+#                $arrayref,                                      $not_allowed_type,
+#                $hashref,                                       $not_allowed_type,
+#                $coderef,                                       $not_allowed_type,
+#                $glob,                                          $not_allowed_type,
+#                $globref,                                       $not_allowed_type,
+#                '/why/do/you/have/a/path/that/looks/like/this', $did_not_pass,
+#            ],
+#        },
+#
+#        #    devnodes => { callbacks => { 'setting access to devnode' => sub {
+#        devnodes => {
+#            good => [qw( none urandom:r urandom:w urandom:q urandom:rw urandom:rq urandom:wq )],
+#            bad  => [
+#                undef,    $not_allowed_type, '',        $did_not_pass,     $scalar,  $did_not_pass,
+#                \$scalar, $not_allowed_type, $arrayref, $not_allowed_type, $hashref, $not_allowed_type,
+#                $coderef, $not_allowed_type, $glob,     $not_allowed_type, $globref, $not_allowed_type,
+#            ],
+#        },
+#    );
+#
+#    my %same = (
+#
+#        # SCALAR checks
+#        applyconfig => [ qw(
+#
+#                applyconfig_map config hostname name netif_add netif_del ostemplate
+#                pci_add pci_del private root searchdomain
+#
+#                ),
+#        ],
+#
+#        # SCALAR | ARRAYREF checks
+#        command => [qw( exec script )],
+#
+#        # UNDEF checks
+#        force => [qw( save wait )],
+#
+#        # INT checks
+#        bootorder => [qw( cpulimit cpus cpuunits quotatime quotaugidlimit )],
+#
+#        # yes or no checks
+#        onboot => [qw( disabled noatime )],
+#
+#        # ip checks
+#        ipadd => [qw( nameserver )],
+#
+#        # hard|soft limits
+#        avnumproc => [ qw(
+#
+#                dcachesize dgramrcvbuf diskinodes diskspace kmemsize lockedpages numfile
+#                numflock numiptent numothersock numproc numpty numsiginfo numtcpsock
+#                oomguarpages othersockbuf physpages privvmpages shmpages swappages
+#                tcprcvbuf tcpsndbuf vmguarpages
+#
+#                ),
+#        ],
+#    );
+#
+#    for my $key ( keys %same ) {
+#
+#        $hash{ $_ } = $hash{ $key } for @{ $same{ $key } };
+#
+#    }
+#
+#    %hash;
+#
+#};
 
 my @bad_ctids = qw( invalid_ctid invalid_name );
 my @global_flags = ( '', 'quiet', 'verbose' );
@@ -337,23 +327,6 @@ my %invalid_regex = (
     ## use critic
 
 );
-
-# XXX: my $badparm_rx      = qr/The following parameter was passed .* but was not listed in the validation options: badparm/;
-
-my @known_commands = sort( known_commands() );
-
-cmp_bag(
-    \@known_commands, [ qw(
-
-            chkpnt create destroy enter exec exec2 mount quotainit quotaoff quotaon
-            restart restore runscript set start status stop umount
-
-            ),
-    ],
-    'got expected known commands',
-);
-
-# XXX: need to test subcommand_specs
 
 for my $cmd ( @known_commands ) {
     for my $parm ( sort keys %{ subcommand_specs( $cmd ) } ) {

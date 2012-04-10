@@ -2,6 +2,8 @@ package OpenVZ;
 
 # ABSTRACT: Base class for OpenVZ utilities like vzctl
 
+#XXX: We need to load and parse the VZ system config file.
+
 =for stopwords OpenVZ vzctl vzlist STDOUT STDERR hashref params
 
 =head1 SYNOPSIS
@@ -90,6 +92,7 @@ passed on the command line.
     sub new { ## no critic qw( Bangs::ProhibitVagueNames Subroutines::RequireArgUnpacking )
 
         shift if blessed $_[0] or $_[0] eq __PACKAGE__;
+        croak 'OpenVZ is designed to be an abstract class' if @_ == 0;
         return bless \$object, ref $_[0] || $_[0]; ## no critic qw( Bangs::ProhibitVagueNames )
 
     }
@@ -121,7 +124,10 @@ passed on the command line.
 
     sub execute { ## no critic qw( Subroutines::RequireArgUnpacking )
 
+        # We're doing the funky twisty stuff here so we can handle either functional or oop style calls.
+        # I think this is because of the way Sub::Exporter handles things, but I'm not sure.
         shift if blessed $_[0] or $_[0] eq __PACKAGE__;
+        shift if blessed $_[0];
 
         my %arg = validate(
             @_, {
@@ -130,7 +136,10 @@ passed on the command line.
             } );
 
         # XXX: Need to handle also the case of a hashref
-        return run3( [ $program{ path }{ $arg{ command } }, @{ $arg{ params } } ] );
+
+        my @args = $program{ path }{ $arg{ command } };
+        push @args, @{ $arg{ params } } if exists $arg{ params };
+        return run3( \@args );
 
     }
 
