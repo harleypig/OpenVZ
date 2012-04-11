@@ -622,6 +622,7 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made o
         restore   => [qw( [restore_dumpfile] )], # done
         create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )], # done
 
+        # done
         set => [ qw(
 
                 [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]

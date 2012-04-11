@@ -5,6 +5,7 @@ use warnings;
 
 my $not_allowed_type = qr/not one of the allowed types/;
 my $did_not_pass     = qr/did not pass/;
+my $mandatory        = qr/Mandatory parameter '.*?' missing in call/;
 
 my %check = do {
 
@@ -272,5 +273,6 @@ sub global_flags     { @global_flags }
 sub invalid_regex    { \%invalid_regex }
 sub did_not_pass     { $did_not_pass }
 sub not_allowed_type { $not_allowed_type }
+sub mandatory_regex  { $mandatory }
 
 1;
