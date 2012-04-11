@@ -7,12 +7,12 @@ use warnings;
 
 no warnings 'once';
 
-use Test::Most tests => 166;
+use Test::Most tests => 814;
 use Test::NoWarnings;
 
 use Carp;
-use Params::Validate 'SCALAR';
-use Regexp::Common 'URI';
+use Params::Validate ':all';
+use Regexp::Common qw( URI net );
 
 use t::Util;
 
@@ -31,19 +31,24 @@ BEGIN {
 
 }
 
-my @parms
-    = qw( ostemplate config private root ipadd hostname ); # <<<--- Change this to match the parameters you are expecting (checked against
-                                                          # known_options).
+my @parms = sort qw( ostemplate config private root ipadd hostname );
 
-    # If the code pointed to by coderefs are bad, later testing will catch it.  We'll ignore it for testing the structure of the hash.
+# If the code pointed to by coderefs are bad, later testing will catch it.  We'll ignore it for testing the structure of the hash.
 
-    my $expected_spec = {                                 # <<<--- Change this to match expected hash from subcommand_specs
+my $expected_spec = {                     # <<<--- Change this to match expected hash from subcommand_specs
 
-    create_dumpfile => { type => SCALAR, optional => 1, callbacks => { 'does it look like a valid filename?' => ignore() }, },
     ctid => { type => SCALAR, callbacks => { 'validate ctid' => ignore() } },
     flag => { type => SCALAR, optional => 1, regex => qr{^quiet|verbose$}i },
 
-    };
+    config     => { type => SCALAR, optional => 1, callbacks => { 'do not want empty strings' => ignore() }, },
+    hostname   => { type => SCALAR, optional => 1, callbacks => { 'do not want empty strings' => ignore() }, },
+    ostemplate => { type => SCALAR, optional => 1, callbacks => { 'do not want empty strings' => ignore() }, },
+    private    => { type => SCALAR, optional => 1, callbacks => { 'do not want empty strings' => ignore() }, },
+    root       => { type => SCALAR, optional => 1, callbacks => { 'do not want empty strings' => ignore() }, },
+
+    ipadd => { type => SCALAR | ARRAYREF, optional => 1, 'callbacks' => { 'do these look like valid ip(s)?' => ignore() }, },
+
+};
 
 #
 ###################################################################################################################################
@@ -54,10 +59,9 @@ my %goodbad; @goodbad{ @parms } = t::Util::type( @parms );
 my %invalid_regex = %{ t::Util::invalid_regex() };
 
 note( 'Testing known_options' );
-my @expected_parms = qw( flag ctid );
-push @expected_parms, map { "[$_]" } @parms;
-my $known_options = known_options( $subcommand );
-cmp_deeply( $known_options, \@expected_parms, "$subcommand known_options matches" );
+my @expected_parms = sort ( qw( flag ctid ), ( map { "[$_]" } @parms ) );
+my @known_options = sort @{ known_options( $subcommand ) };
+cmp_deeply( \@known_options, \@expected_parms, "$subcommand known_options matches" );
 
 note( 'Testing subcommand_specs' );
 my $subcommand_spec = subcommand_specs( $subcommand );

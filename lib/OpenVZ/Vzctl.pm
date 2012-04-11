@@ -591,7 +591,8 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made o
 =cut
 
 # Every subcommand requires ctid and has the optional flag of C<quiet> or C<verbose>.  Though these flags are mutually exclusive,
-# C<vzctl> will accept both at the same time.  Results are undefined when using both flag at the same time.
+# C<vzctl> will accept both at the same time.  Results are undefined when using both flag at the same time.  However, this code is
+# setup to accept only one or the other.
 
 # Surrounding a paremeter with square brackets ( [parm] ) will make the parm optional in C<subcommand_specs>.
 
@@ -603,23 +604,23 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made o
 
     my %vzctl = (
 
-        destroy   => [],
-        mount     => [],
-        quotainit => [],
-        quotaoff  => [],
-        quotaon   => [],
-        restart   => [],
-        status    => [],
-        stop      => [],
-        umount    => [],
+        destroy   => [], # done
+        mount     => [], # done
+        quotainit => [], # done
+        quotaoff  => [], # done
+        quotaon   => [], # done
+        restart   => [], # done
+        status    => [], # done
+        stop      => [], # done
+        umount    => [], # done
         exec      => [qw( command )],
         exec2     => [qw( command )],
         runscript => [qw( script )],
-        start     => [qw( [force] [wait] )],
-        enter     => [qw( [exec] )],
-        chkpnt    => [qw( [create_dumpfile] )],
-        restore   => [qw( [restore_dumpfile] )],
-        create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
+        start     => [qw( [force] [wait] )], # done
+        enter     => [qw( [exec] )], # done
+        chkpnt    => [qw( [create_dumpfile] )], # done
+        restore   => [qw( [restore_dumpfile] )], # done
+        create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )], # done
 
         set => [ qw(
 

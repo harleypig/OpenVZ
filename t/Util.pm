@@ -3,6 +3,9 @@ package t::Util;
 use strict;
 use warnings;
 
+my $not_allowed_type = qr/not one of the allowed types/;
+my $did_not_pass     = qr/did not pass/;
+
 my %check = do {
 
     # Basic types to check for:
@@ -13,9 +16,6 @@ my %check = do {
     my $coderef  = sub { };
     my $glob     = do { local *GLOB }; ## no critic qw( Variables::ProhibitLocalVars Variables::RequireInitializationForLocalVars )
     my $globref  = \*GLOB;
-
-    my $not_allowed_type = qr/not one of the allowed types/;
-    my $did_not_pass     = qr/did not pass/;
 
     my %hash = (
 
@@ -266,9 +266,11 @@ my %invalid_regex = (
 
 );
 
-sub type          { @check{ @_ } }
-sub bad_ctids     { @bad_ctids }
-sub global_flags  { @global_flags }
-sub invalid_regex { \%invalid_regex }
+sub type             { @check{ @_ } }
+sub bad_ctids        { @bad_ctids }
+sub global_flags     { @global_flags }
+sub invalid_regex    { \%invalid_regex }
+sub did_not_pass     { $did_not_pass }
+sub not_allowed_type { $not_allowed_type }
 
 1;
