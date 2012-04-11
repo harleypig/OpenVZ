@@ -25,8 +25,10 @@ use strict;
 use warnings;
 
 # This way, we don't need to remember to use autoclean in our submodules.
-use namespace::autoclean ();
-sub import { return namespace::autoclean->import( -cleanee => scalar caller ) }
+#use namespace::autoclean ();
+#sub import { return namespace::autoclean->import( -cleanee => scalar caller ) }
+use namespace::sweep ();
+sub import { return namespace::sweep->import( -cleanee => scalar caller, -also => qr/^_\w*$/ ) }
 
 use Carp;
 
@@ -44,7 +46,7 @@ use Sub::Exporter::ForMethods 'method_installer';
 # VERSION
 
 ############################################################################
-# Public Functions
+    # Public Functions
 
 =function new
 
@@ -77,19 +79,19 @@ passed on the command line.
 
 =cut
 
-{  # Quick! Hide!!
+    {  # Quick! Hide!!
 
     my @exports;
 
-    # @exports holds the names of functions to be exported.  The easiest way to
-    # maintain this is to push the name of the function right before it is
-    # defined.
+        # @exports holds the names of functions to be exported.  The easiest way to
+        # maintain this is to push the name of the function right before it is
+        # defined.
 
-    #push @exports, 'new';
+        #push @exports, 'new';
 
-    my $object; ## no critic qw( Bangs::ProhibitVagueNames )
+        my $object; ## no critic qw( Bangs::ProhibitVagueNames )
 
-    sub new { ## no critic qw( Bangs::ProhibitVagueNames Subroutines::RequireArgUnpacking )
+        sub new { ## no critic qw( Bangs::ProhibitVagueNames Subroutines::RequireArgUnpacking )
 
         shift if blessed $_[0] or $_[0] eq __PACKAGE__;
         croak 'OpenVZ is designed to be an abstract class' if @_ == 0;
@@ -100,10 +102,10 @@ passed on the command line.
 
     my %program;
 
-    # Determines if the specified command is installed, what its path is and
-    # caches it. Used in execute.
+        # Determines if the specified command is installed, what its path is and
+        # caches it. Used in execute.
 
-    my $find_command = sub {
+        my $find_command = sub {
 
         shift if blessed $_[0] or $_[0] eq __PACKAGE__;
 
@@ -114,15 +116,16 @@ passed on the command line.
             if exists $program{ path }{ $pgm };
 
         $program{ path }{ $pgm } = which( $pgm )
-            or croak "Could not find $pgm in path ($ENV{PATH})"; ## no critic qw( ErrorHandling::RequireUseOfExceptions )
+            or croak "Could not find $pgm in path ($ENV{PATH})"; #
+          # no critic qw( ErrorHandling::RequireUseOfExceptions )
 
         return 1;
 
-    };
+        };
 
-    push @exports, 'execute';
+        push @exports, 'execute';
 
-    sub execute { ## no critic qw( Subroutines::RequireArgUnpacking )
+        sub execute { ## no critic qw( Subroutines::RequireArgUnpacking )
 
         # We're doing the funky twisty stuff here so we can handle either functional or oop style calls.
         # I think this is because of the way Sub::Exporter handles things, but I'm not sure.
@@ -151,15 +154,15 @@ passed on the command line.
 
     my %exports = map { ( $_ => curry_method ) } @exports;
 
-    my $config = {
+        my $config = {
 
         exports   => \%exports,
         installer => method_installer,
 
-    };
+        };
 
-    Sub::Exporter::setup_exporter( $config );
+        Sub::Exporter::setup_exporter( $config );
 
-} ## end hiding
+    } ## end hiding
 
-1;
+    1;
