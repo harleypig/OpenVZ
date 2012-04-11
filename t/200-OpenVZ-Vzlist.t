@@ -5,9 +5,8 @@ use 5.006;
 use strict;
 use warnings;
 
-use Test::Most tests => 30;
-
-#use Test::NoWarnings;
+use Test::Most tests => 29;
+use Test::NoWarnings;
 
 use t::Util;
 
@@ -102,7 +101,7 @@ OpenVZ.pm},
     ignore(),
 );
 
-my @expect_vzlist_empty = ( q{vzlist}, q{}, 0, ignore() );
+my @expect_vzlist_empty = ( q{t/bin/vzlist}, q{}, 0, ignore() );
 
 cmp_deeply( [ execute( { command => 'false' } ) ], \@expect_execute_false, 'execute false works (functional)' );
 cmp_deeply( [ execute( { command => 'ls', params => ['lib'] } ) ], \@expect_execute_ls, 'execute ls worked (functional)' );

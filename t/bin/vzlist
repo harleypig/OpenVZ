@@ -3,10 +3,7 @@
 use strict;
 use warnings;
 
-die "Not handling empty parms\n"
-  unless @ARGV;
-
-if ( $ARGV[0] eq '-Ho' && $ARGV[1] eq 'ctid,name' ) {
+if ( @ARGV && $ARGV[0] eq '-Ho' && $ARGV[1] eq 'ctid,name' ) {
 
   # then we're looking for a ctid,name combination
   #
@@ -36,9 +33,9 @@ if ( $ARGV[0] eq '-Ho' && $ARGV[1] eq 'ctid,name' ) {
 
   }
 
-} else {
+} else { # just return what we were called with
 
-  die "Don't know how to handle @ARGV\n";
+  printf '%s%s', $0, ( @ARGV ? " @ARGV" : '' );
 
 }
 
