@@ -51,7 +51,7 @@ my $expected_spec = {                     # <<<--- Change this to match expected
 
 my %goodbad; @goodbad{ @parms } = t::Util::type( @parms );
 my %invalid_regex   = %{ t::Util::invalid_regex() };
-my $mandatory_regex = t::Util::mandatory_regex();
+my $mandatory_regex = t::Util::mandatory();
 
 note( 'Testing known_options' );
 my @expected_parms = sort ( qw( flag ctid ), @parms );

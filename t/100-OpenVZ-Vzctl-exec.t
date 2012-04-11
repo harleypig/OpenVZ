@@ -50,8 +50,8 @@ my $expected_spec = {                     # <<<--- Change this to match expected
 # XXX: The rest of this should be moved to t::Util somehow ...
 
 my %goodbad; @goodbad{ @parms } = t::Util::type( @parms );
-my %invalid_regex = %{ t::Util::invalid_regex() };
-my $mandatory_regex = t::Util::mandatory_regex();
+my %invalid_regex   = %{ t::Util::invalid_regex() };
+my $mandatory_regex = t::Util::mandatory();
 
 note( 'Testing known_options' );
 my @expected_parms = sort ( qw( flag ctid ), @parms );
@@ -208,9 +208,10 @@ for my $parm ( undef, @parms ) {
 
             my $empty_value_object = OpenVZ::Vzctl->new;
             isa_ok( $empty_value_object, 'OpenVZ::Vzctl', 'object created for bad values' );
-            throws_ok{ $empty_value_object->$subcommand( \%empty_value_hash ) } $mandatory_regex, 'command is required (oop)';
-            throws_ok{ no strict 'refs'; $subcommand->( \%empty_value_hash ) } $mandatory_regex, 'command is required (functional)';
+            throws_ok { $empty_value_object->$subcommand( \%empty_value_hash ) } $mandatory_regex, 'command is required (oop)';
+            throws_ok { no strict 'refs'; $subcommand->( \%empty_value_hash ) } $mandatory_regex,
+                'command is required (functional)';
 
-        } ## end else [ if ( defined $parm...)]
+        }
     } ## end for my $flag ( t::Util::global_flags...)
 } ## end for my $parm ( undef...)

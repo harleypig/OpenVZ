@@ -47,8 +47,6 @@ my $expected_spec = {                     # <<<--- Change this to match expected
 #
 ###################################################################################################################################
 
-# XXX: The rest of this should be moved to t::Util somehow ...
-
 my %goodbad; @goodbad{ @parms } = t::Util::type( @parms );
 my %invalid_regex = %{ t::Util::invalid_regex() };
 

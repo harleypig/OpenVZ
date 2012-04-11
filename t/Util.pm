@@ -3,9 +3,16 @@ package t::Util;
 use strict;
 use warnings;
 
-my $not_allowed_type = qr/not one of the allowed types/;
+use Test::Most;
+
+my @bad_ctids        = qw( invalid_ctid invalid_name );
 my $did_not_pass     = qr/did not pass/;
-my $mandatory        = qr/Mandatory parameter '.*?' missing in call/;
+my $expecting_ref    = qr/Expecting array or hash reference in/;
+my @global_flags     = ( '', 'quiet', 'verbose' );
+my $mandatory        = qr/Mandatory parameters? '.*?' missing in call/;
+my $not_allowed_type = qr/not one of the allowed types/;
+my $not_listed       = qr/was not listed in the validation options/;
+my $odd_number       = qr/Odd number of parameters/;
 
 my %check = do {
 
@@ -255,9 +262,6 @@ my %check = do {
 
 };
 
-my @bad_ctids = qw( invalid_ctid invalid_name );
-my @global_flags = ( '', 'quiet', 'verbose' );
-
 my %invalid_regex = (
 
     ## no critic qw( RegularExpressions::ProhibitComplexRegexes )
@@ -267,12 +271,15 @@ my %invalid_regex = (
 
 );
 
-sub type             { @check{ @_ } }
 sub bad_ctids        { @bad_ctids }
+sub did_not_pass     { $did_not_pass }
+sub expecting_ref    { $expecting_ref }
 sub global_flags     { @global_flags }
 sub invalid_regex    { \%invalid_regex }
-sub did_not_pass     { $did_not_pass }
+sub mandatory        { $mandatory }
 sub not_allowed_type { $not_allowed_type }
-sub mandatory_regex  { $mandatory }
+sub not_listed       { $not_listed }
+sub odd_number       { $odd_number }
+sub type             { @check{ @_ } }
 
 1;

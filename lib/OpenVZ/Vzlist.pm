@@ -49,11 +49,11 @@ use parent 'OpenVZ';
 
 our $AUTOLOAD;
 
-{  # "The secret to creativity is knowing how to hide your sources." -Albert Einstein
+=function vzlist
 
-    my @vzlist_exports;
+=function known_fields
 
-############################################################################
+Returns a list of known fields for the output and sort options.
 
 =function known_options
 
@@ -61,21 +61,16 @@ Given a command, returns a list of known options
 
 =cut
 
-    push @vzlist_exports, 'known_options';
+{  # "The secret to creativity is knowing how to hide your sources." -Albert Einstein
 
-    my @vzlist = map { "[$_]" } qw( all description hostname list name name_filter no-header output sort stopped );
+    ############################################################################
+    # Public Functions
 
-    sub known_options { return wantarray ? @vzlist : \@vzlist }
+    my @vzlist_exports;
 
-############################################################################
+    push @vzlist_exports, 'execute';  # imported from OpenVZ
 
-=function known_fields
-
-Returns a list of known fields for the output and sort options.
-
-=cut
-
-    push @vzlist_exports, 'known_fields';
+    ############################################################################
 
     my @fields = qw(
 
@@ -94,9 +89,11 @@ Returns a list of known fields for the output and sort options.
 
     my $fields_rx = join q{|}, @fields;
 
+    push @vzlist_exports, 'known_fields';
+
     sub known_fields { return wantarray ? @fields : \@fields }
 
-############################################################################
+    ############################################################################
 
     my %spec = do {
 
@@ -105,19 +102,19 @@ Returns a list of known fields for the output and sort options.
             # XXX: Annoying.  Need to submit a bug for this.
             ## no critic qw( Variables::ProhibitPunctuationVars )
             all         => { type => UNDEF,  optional => 1 },
-            description => { type => SCALAR, regex    => qr/^.+$/, optional => 1 },
-            output      => { type => SCALAR, regex    => qr/^(?:$fields_rx)(?:,$fields_rx)*$/i, optional => 1 },
-            sort        => { type => SCALAR, regex    => qr/^-?(?:$fields_rx)$/i, optional => 1 },
+            description => { type => SCALAR, optional => 1, regex => qr/^.+$/ },
+            output      => { type => SCALAR, optional => 1, regex => qr/^(?:$fields_rx)(?:,$fields_rx)*$/i },
+            sort        => { type => SCALAR, optional => 1, regex => qr/^-?(?:$fields_rx)$/i },
             ## use critic
 
         );
 
-        my %same = {
+        my %same = (
 
             all         => [qw( list name no-header stopped )],
             description => [qw( hostname name_filter )],
 
-        };
+        );
 
         for my $key ( keys %same ) {
 
@@ -129,25 +126,26 @@ Returns a list of known fields for the output and sort options.
 
     };
 
-    ############################################################################
-    # Public Functions
+    my %hash = ( command => 'vzlist' );
+
+    push @vzlist_exports, 'vzlist';  # imported from OpenVZ
 
     sub vzlist {
 
         shift if blessed $_[0];
 
-        my %arg = validate_with( params => @_, spec => $spec, allow_extra => 1, );
+        my %arg = validate_with( params => \@_, spec => \%spec );
 
         my @params;
 
-        for my $p ( keys %arg ) {
+        for my $arg_name ( keys %arg ) {
 
             push @params, "--$arg_name";
 
-            push @params, $arg{ $p }
-                if defined $arg{ $p } && $arg{ $p } ne '';
+            push @params, $arg{ $arg_name }
+                if defined $arg{ $arg_name } && $arg{ $arg_name } ne '';
 
-        } ## end for my $p ( keys %arg)
+        }
 
         @params = grep { $_ ne '' } @params;
 
@@ -157,38 +155,46 @@ Returns a list of known fields for the output and sort options.
 
     } ## end sub vzlist
 
-############################################################################
+    ############################################################################
+
+    push @vzlist_exports, 'known_options';
+
+    my @vzlist = map { "[$_]" } keys %spec;
+
+    sub known_options { return wantarray ? @vzlist : \@vzlist }
+
+    ############################################################################
     # Internal Functions
 
     # for oop stuff
 
     # XXX: Do we need/want to support methods for the various options (what is returned from subcommand_specs)?
 
-    sub AUTOLOAD { ## no critic qw( Subroutines::RequireArgUnpacking ClassHierarchies::ProhibitAutoloading )
+    #    sub AUTOLOAD { ## no critic qw( Subroutines::RequireArgUnpacking ClassHierarchies::ProhibitAutoloading )
+    #
+    #        carp "$_[0] is not an object"
+    #            unless blessed $_[0];
+    #
+    #        ( my $subcommand = $AUTOLOAD ) =~ s/^.*:://;
+    #
+    #        carp "$subcommand is not a valid method"
+    #            unless exists $vzctl{ $subcommand };
+    #
+    #        ## no critic qw( TestingAndDebugging::ProhibitNoStrict References::ProhibitDoubleSigils )
+    #        no strict 'refs';
+    #        *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
+    #
+    #        goto &$AUTOLOAD;
+    #        ## use critic
+    #
+    #    } ## end sub AUTOLOAD
+    #
+    #    # AUTOLOAD assumes DESTROY exists
+    #    DESTROY { }
+    #
+    #    push @vzctl_exports, ( $_ => \&_generate_subcommand ) for keys %vzctl;
 
-        carp "$_[0] is not an object"
-            unless blessed $_[0];
-
-        ( my $subcommand = $AUTOLOAD ) =~ s/^.*:://;
-
-        carp "$subcommand is not a valid method"
-            unless exists $vzctl{ $subcommand };
-
-        ## no critic qw( TestingAndDebugging::ProhibitNoStrict References::ProhibitDoubleSigils )
-        no strict 'refs';
-        *$AUTOLOAD = _generate_subcommand( undef, $subcommand );
-
-        goto &$AUTOLOAD;
-        ## use critic
-
-    } ## end sub AUTOLOAD
-
-    # AUTOLOAD assumes DESTROY exists
-    DESTROY { }
-
-    push @vzctl_exports, ( $_ => \&_generate_subcommand ) for keys %vzctl;
-
-############################################################################
+    ############################################################################
     # Setup exporter
 
     my $config = {
