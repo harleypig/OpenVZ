@@ -11,6 +11,17 @@ profile-strictness = warn
 [-Compatibility::PerlMinimumVersionAndWhy]
 [-Modules::PerlMinimumVersion]
 
+# If I use the Documentation::PodSpelling policy, I get the following error, even though the words are included in 'stopwords'.
+# WTF?
+#
+# Check the spelling in your POD: ipadd 'package OpenVZ::Vzctl;' Severity: 1 Documentation::PodSpelling
+# Check the spelling in your POD: vzlist 'package OpenVZ::Vzlist;' Severity: 1 Documentation::PodSpelling
+#
+# so ...
+
+[-Documentation::PodSpelling] # comment this to check your spelling
+
+# Don't agree with these
 [-Bangs::ProhibitBitwiseOperators]
 [-Bangs::ProhibitCommentedOutCode]
 [-Bangs::ProhibitFlagComments]
@@ -23,6 +34,7 @@ profile-strictness = warn
 [-Documentation::RequirePodSections]
 [-Documentation::RequirePODUseEncodingUTF8]
 [-Editor::RequireEmacsFileVariables]
+[-ErrorHandling::RequireUseOfExceptions]
 [-InputOutput::RequireEncodingWithUTF8Layer]
 [-Lax::ProhibitEmptyQuotes::ExceptAsFallback]
 [-Miscellanea::RequireRcsKeywords]

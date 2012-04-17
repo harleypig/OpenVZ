@@ -130,7 +130,7 @@ Given a command, returns a list of known options
 
     push @vzlist_exports, 'vzlist';  # imported from OpenVZ
 
-    sub vzlist {
+    sub vzlist { ## no critic qw( Subroutines::RequireArgUnpacking )
 
         shift if blessed $_[0];
 

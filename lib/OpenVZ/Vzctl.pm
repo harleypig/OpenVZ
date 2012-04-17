@@ -8,6 +8,12 @@ package OpenVZ::Vzctl;
 #XXX: Need to use 'on_fail' option for validate_with for smoother error
 #     handling.
 
+=for stopwords applyconfig arrayref avnumproc bootorder config cpulimit cpumask cpus cpuunits ctid CTID dcachesize devnodes
+dgramrcvbuf diskinodes diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize lockedpages manpage nameserver noatime
+numfile numflock numiptent numothersock numproc numpty numsiginfo numtcpsock onboot oomguarpages ostemplate othersockbuf physpages
+privvmpages quotatime quotaugidlimit regex searchdomain setmode shmpages subcommand subcommands swappages tcprcvbuf tcpsndbuf undef
+userpasswd vmguarpages vzctl
+
 =head1 SYNOPSIS
 
   use OpenVZ::Vzctl;
@@ -25,12 +31,6 @@ All of the commands for vzctl are implemented and all of the options for each co
 I don't use so I'm not sure how to test them.  Tests are welcome.
 
 If you want to know what commands and options are available read C<vzctl>s man page.  I followed that in creating this module.
-
-=for stopwords applyconfig arrayref avnumproc bootorder config cpulimit cpumask cpus cpuunits ctid CTID dcachesize devnodes
-dgramrcvbuf diskinodes diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize lockedpages manpage nameserver noatime
-numfile numflock numiptent numothersock numproc numpty numsiginfo numtcpsock onboot oomguarpages ostemplate othersockbuf physpages
-privvmpages quotatime quotaugidlimit regex searchdomain setmode shmpages subcommand subcommands swappages tcprcvbuf tcpsndbuf undef
-userpasswd vmguarpages vzctl
 
 =cut
 
@@ -604,25 +604,24 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made o
 
     my %vzctl = (
 
-        destroy   => [], # done
-        mount     => [], # done
-        quotainit => [], # done
-        quotaoff  => [], # done
-        quotaon   => [], # done
-        restart   => [], # done
-        status    => [], # done
-        stop      => [], # done
-        umount    => [], # done
+        destroy   => [],
+        mount     => [],
+        quotainit => [],
+        quotaoff  => [],
+        quotaon   => [],
+        restart   => [],
+        status    => [],
+        stop      => [],
+        umount    => [],
         exec      => [qw( command )],
         exec2     => [qw( command )],
         runscript => [qw( script )],
-        start     => [qw( [force] [wait] )], # done
-        enter     => [qw( [exec] )], # done
-        chkpnt    => [qw( [create_dumpfile] )], # done
-        restore   => [qw( [restore_dumpfile] )], # done
-        create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )], # done
+        start     => [qw( [force] [wait] )],
+        enter     => [qw( [exec] )],
+        chkpnt    => [qw( [create_dumpfile] )],
+        restore   => [qw( [restore_dumpfile] )],
+        create    => [qw( [config] [hostname] [ipadd] [ostemplate] [private] [root] )],
 
-        # done
         set => [ qw(
 
                 [applyconfig] [applyconfig_map] [avnumproc] [bootorder] [capability]
@@ -992,7 +991,7 @@ Returns a list of known features for the C<vzctl set features> option.
 
             } else {
 
-                croak "Don't know how to handle ref type $ref for $p"; ## no critic qw( ErrorHandling::RequireUseOfExceptions )
+                croak "Don't know how to handle ref type $ref for $p";
 
             }
         } ## end for my $p ( keys %arg)
@@ -1030,10 +1029,8 @@ Returns a list of known features for the C<vzctl set features> option.
 
                 my $optional = $spec =~ s/^\[(.*)\]$/$1/;
 
-                ## no critic qw( ErrorHandling::RequireUseOfExceptions )
                 croak "Unknown spec $spec"
                     unless exists $validate{ $spec };
-                ## use critic
 
                 next if any { /^-$spec$/ } @args;
 
@@ -1052,10 +1049,8 @@ Returns a list of known features for the C<vzctl set features> option.
             next if $spec =~ /^-/;
             next if exists $spec_hash{ $spec };
 
-            ## no critic qw( ErrorHandling::RequireUseOfExceptions )
             croak "Unknown spec $spec"
                 unless exists $validate{ $spec };
-            ## use critic
 
             $spec_hash{ $spec } = $validate{ $spec };
 
