@@ -19,7 +19,11 @@ profile-strictness = warn
 #
 # so ...
 
-[-Documentation::PodSpelling] # comment this to check your spelling
+# comment this to check your spelling
+[-Documentation::PodSpelling]
+
+# not sure how to make dzil run perltidy after munging the files so, uncomment this when developing
+[-CodeLayout::RequireTidyCode]
 
 # Don't agree with these
 [-Bangs::ProhibitBitwiseOperators]
@@ -27,6 +31,7 @@ profile-strictness = warn
 [-Bangs::ProhibitFlagComments]
 [-CodeLayout::ProhibitHashBarewords]
 [-CodeLayout::RequireUseUTF8]
+[-Compatibility::PodMinimumVersion]
 [-ControlStructures::ProhibitCStyleForLoops]
 [-ControlStructures::ProhibitPostfixControls]
 [-Documentation::RequirePodAtEnd]
