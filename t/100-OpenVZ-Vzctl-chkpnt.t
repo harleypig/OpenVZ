@@ -31,7 +31,7 @@ BEGIN {
 
 }
 
-my @parms = sort qw( create_dumpfile );        # <<<--- Change this to match the parameters you are expecting (checked against
+my @parms = sort qw( create_dumpfile );   # <<<--- Change this to match the parameters you are expecting (checked against
                                           # known_options).
 
 # If the code pointed to by coderefs are bad, later testing will catch it.  We'll ignore it for testing the structure of the hash.

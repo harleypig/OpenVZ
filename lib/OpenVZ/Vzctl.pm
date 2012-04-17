@@ -8,31 +8,6 @@ package OpenVZ::Vzctl;
 #XXX: Need to use 'on_fail' option for validate_with for smoother error
 #     handling.
 
-=for stopwords applyconfig arrayref avnumproc bootorder config cpulimit cpumask cpus cpuunits ctid CTID dcachesize devnodes
-dgramrcvbuf diskinodes diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize lockedpages manpage nameserver noatime
-numfile numflock numiptent numothersock numproc numpty numsiginfo numtcpsock onboot oomguarpages ostemplate othersockbuf physpages
-privvmpages quotatime quotaugidlimit regex searchdomain setmode shmpages subcommand subcommands swappages tcprcvbuf tcpsndbuf undef
-userpasswd vmguarpages vzctl
-
-=head1 SYNOPSIS
-
-  use OpenVZ::Vzctl;
-
-  #XXX: need to add more examples
-
-=head1 DESCRIPTION
-
-This program is a simple (or not so simple in some cases) wrapper around the 'vzctl' program.  It will do some basic verification on
-options and parameters but it will not (currently) do sanity checks on the values.
-
-=head2 NOTE
-
-All of the commands for vzctl are implemented and all of the options for each command is provided for, but some commands and options
-I don't use so I'm not sure how to test them.  Tests are welcome.
-
-If you want to know what commands and options are available read C<vzctl>s man page.  I followed that in creating this module.
-
-=cut
 
 use 5.006;
 
@@ -51,544 +26,13 @@ use Sub::Exporter;
 
 use parent 'OpenVZ';
 
-# VERSION
+our $VERSION = '0.01'; # VERSION
 
 our $AUTOLOAD;
 
 ############################################################################
 # Base structure describing the subcommands and their arguments.
 
-=vzctl_cmd chkpnt
-
-C<chkpnt> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-Can be either a CTID or name. The command C<vzlist -Ho name,ctid value> is used to determine if C<value> is a valid identifier.
-
-=item create_dumpfile (optional)
-
-Expects a scalar that looks like a file but does not check if it's possible to write to the specified file.  L<Regexp::Common>'s
-C<URI> regex is used to determine what looks like a file.
-
-=back
-
-See the C<vzctl> manpage for information on the C<chkpnt> command.
-
-=vzctl_cmd create
-
-C<create> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item config (optional)
-
-Expects a scalar, but doesn't check validity of value.
-
-=item hostname (optional)
-
-Expects a scalar, but doesn't check validity of value.
-
-=item ipadd (optional)
-
-Expects a scalar or a reference to an array. L<Regexp::Common>'s C<net IPv4> regex is used to determine if the values are valid
-looking ips.
-
-=item ostemplate (optional)
-
-Expects a scalar, but doesn't check validity of value.
-
-=item private (optional)
-
-Expects a scalar, but doesn't check validity of value.
-
-=item root (optional)
-
-Expects a scalar, but doesn't check validity of value.
-
-=back
-
-See the C<vzctl> manpage for information on the C<create> command.
-
-=vzctl_cmd destroy
-
-C<destroy> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<destroy> command.
-
-=vzctl_cmd enter
-
-C<enter> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item exec (optional)
-
-Expects a scalar or reference to an array but doesn't check for the validity of the command.
-
-=back
-
-See the C<vzctl> manpage for information on the C<enter> command.
-
-=vzctl_cmd exec
-
-C<exec> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item command (required)
-
-Expects a scalar or a reference to an array but doesn't check for the validity of the command.
-
-=back
-
-See the C<vzctl> manpage for information on the C<exec> command.
-
-=vzctl_cmd exec2
-
-C<exec2> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item command (required)
-
-Expects a scalar or a reference to an array but doesn't check for the validity
-of the command.
-
-=back
-
-See the C<vzctl> manpage for information on the C<exec2> command.
-
-=vzctl_cmd mount
-
-C<mount> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<mount> command.
-
-=vzctl_cmd quotainit
-
-C<quotainit> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<quotainit> command.
-
-=vzctl_cmd quotaoff
-
-C<quotaoff> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<quotaoff> command.
-
-=vzctl_cmd quotaon
-
-C<quotaon> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<quotaon> command.
-
-=vzctl_cmd restart
-
-C<restart> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<restart> command.
-
-=vzctl_cmd restore
-
-C<restore> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item restore_dumpfile
-
-Checks if the file exists, but does not check for validity of file format.
-
-=back
-
-See the C<vzctl> manpage for information on the C<restore> command.
-
-=vzctl_cmd runscript
-
-C<runscript> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item script (required)
-
-Expects a scalar or a reference to an array but doesn't check for the validity of the script.
-
-=back
-
-See the C<vzctl> manpage for information on the C<runscript> command.
-
-=vzctl_cmd set
-
-C<set> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item applyconfig
-
-=item applyconfig_map
-
-=item hostname
-
-=item name
-
-=item netif_add
-
-=item netif_del
-
-=item pci_add
-
-=item pci_del
-
-=item searchdomain
-
-Expects a scalar. No other validation is performed.
-
-=item avnumproc
-
-=item dcachesize
-
-=item dgramrcvbuf
-
-=item diskinodes
-
-=item diskspace
-
-=item kmemsize
-
-=item lockedpages
-
-=item numfile
-
-=item numflock
-
-=item numiptent
-
-=item numothersock
-
-=item numproc
-
-=item numpty
-
-=item numsiginfo
-
-=item numtcpsock
-
-=item oomguarpages
-
-=item othersockbuf
-
-=item physpages
-
-=item privvmpages
-
-=item shmpages
-
-=item swappages
-
-=item tcprcvbuf
-
-=item tcpsndbuf
-
-=item vmguarpages
-
-Expects an integer followed by an optional 'g', 'm', 'k' or 'p', followed optionally by a colon and an integer and an optional 'g',
-'m', 'k' or 'p'.  E.g., 5M or 5M:15M.
-
-=item bootorder
-
-=item cpulimit
-
-=item cpus
-
-=item cpuunits
-
-=item quotatime
-
-=item quotaugidlimit
-
-Expects an integer.
-
-=item capability
-
-Expects one of the following capabilities
-
-    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill lease linux_immutable mknod net_admin net_bind_service
-    net_broadcast net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot sys_module sys_nice sys_pacct sys_ptrace
-    sys_rawio sys_resource sys_time sys_tty_config ve_admin
-
-joined with either 'on' or 'off' with a colon. E.g., 'chown:on'.
-
-=item cpumask
-
-Expects either a comma separated list of integers or the word 'all'.
-
-=item devices
-
-Expects a device that matches the regex
-
-  /^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/
-
-No other validation is performed.
-
-XXX Better explanation needed here.
-
-=item devnodes
-
-=item features
-
-Expects one of the following features
-
-  sysfs nfs sit ipip ppp ipgre bridge nfsd
-
-followed by a colon and either 'on' or 'off'.
-
-=item force
-
-=item save
-
-Expects either undef or the empty string.
-
-=item ioprio
-
-Expects a single integer from 0 to 7.
-
-=item ipadd
-
-=item ipdel
-
-Expects either an array reference or a space separated list of ips to be added or deleted. L<Regexp::Common>'s C<net IPv4> regex is
-used to determine if the ips look valid.  No other validation is performed.
-
-C<ipdel> also accepts 'all' to delete all ips.
-
-=item iptables
-
-Expects either an array reference or space separated list of one or more of the following
-
-    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc iptable_filter iptable_mangle iptable_nat ipt_conntrack
-    ipt_helper ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss
-    ipt_TCPMSS ipt_tos ipt_TOS ipt_ttl xt_mac
-
-=item nameserver
-
-=item disabled
-
-=item noatime
-
-=item onboot
-
-Expects either 'yes' or 'no'.
-
-=item setmode
-
-Expects either 'restart' or 'ignore'.
-
-=item userpasswd
-
-Expects two strings separated by a colon.  No other validation is performed on the value.
-
-=back
-
-See the C<vzctl> manpage for information on the C<set> command.
-
-=vzctl_cmd start
-
-C<start> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=item force
-
-=item wait
-
-Expects either undef or the empty string.
-
-=back
-
-See the C<vzctl> manpage for information on the C<start> command.
-
-=vzctl_cmd status
-
-C<status> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<status> command.
-
-=vzctl_cmd stop
-
-C<stop> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<stop> command.
-
-=vzctl_cmd umount
-
-C<umount> expects a hash reference with the following keys and values.
-
-=over 4
-
-=item ctid (required)
-
-See C<chkpnt> for details.
-
-=back
-
-See the C<vzctl> manpage for information on the C<umount> command.
-
-=function vzctl
-
-C<vzctl> is used to call C<execute> with vzctl as the specific command.
-
-C<vzctl> expects a hashref with the required keys C<subcommand> and C<ctid> and does B<NOT> check the validity of any remaining
-keys.
-
-A C<flag> key is optional and accepts C<quiet> and C<verbose>.
-
-An example of a valid call would be
-
-  my $result = vzctl({ subcommand => 'set', 'ctid' => 101, ipadd => '1.2.3.4', save => undef });
-
-In this case, C<set> and C<101> would be validated, but C<1.2.3.4> and the value for C<save> would just be passed along to
-C<execute> as is.
-
-The C<undef> value in C<save> is a hint to C<vzctl> that the C<save> parameter should be passed as a switch (i.e., --save instead of
---save undef).
-
-When a value is an arrayref, e.g., ipadd => [qw( 1.2.3.4 2.3.4.5 )]. C<vzctl> will send the same parameter multiple times.  The
-previous example would become '--ipadd 1.2.3.4 --ipadd 2.3.4.5'.
-
-You're probably better off if you use the functions designed for a specific command unless you know what you're doing.
-
-=function subcommand_specs
-
-C<subcommand_specs> expects a list.  The first element will be checked against a list of known subcommands for vzctl.
-
-If the first element is a known subcommand a predefined hashref will be instantiated.  Any following elements will be treated as
-additional specification names to be included.  Duplicates will be silently ignored.  If an element is preceded by a dash (-), that
-element will be removed from the hashref.
-
-If the first element is not a known subcommand a hashref will be created with the specification names provided, including the first
-element.  Using a dash makes no sense in this context, but will not cause any problems.
-
-C<subcommand_specs> will return the hashref described previously that can be used in the C<spec> option of C<Params::Validate>'s
-C<validate_with> function.  E.g., the call
-
-  my $spec = subcommand_specs( 'stop' );
-
-will return a hashref into C<$spec> that looks like
-
-  $spec = {
-    flag  => { regex => qr/^quiet|verbose/, optional => 1 },
-    ctid  => { callback => { 'validate ctid' => \&_validate_ctid } },
-  }
-
-while the call
-
-  my $spec = subcommand_specs( 'ctid' );
-
-would yield
-
-  $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
-
-If a parameter is surrounded with square brackets ( [] ) the parameter is made optional.
-
-=cut
 
 # Every subcommand requires ctid and has the optional flag of C<quiet> or C<verbose>.  Though these flags are mutually exclusive,
 # C<vzctl> will accept both at the same time.  Results are undefined when using both flag at the same time.  However, this code is
@@ -642,11 +86,6 @@ If a parameter is surrounded with square brackets ( [] ) the parameter is made o
 
 ####################################
 
-=function known_commands
-
-Returns a list of known vzctl commands
-
-=cut
 
     push @vzctl_exports, 'known_commands';
 
@@ -654,11 +93,6 @@ Returns a list of known vzctl commands
 
 ####################################
 
-=function known_options
-
-Given a command, returns a list of known options
-
-=cut
 
     push @vzctl_exports, 'known_options';
 
@@ -679,11 +113,6 @@ Given a command, returns a list of known options
 
 ####################################
 
-=function capabilities
-
-Returns a list of known capabilities for the C<vzctl set capability> option.
-
-=cut
 
     my @capabilities = qw(
 
@@ -701,11 +130,6 @@ Returns a list of known capabilities for the C<vzctl set capability> option.
 
 ####################################
 
-=function iptables_modules
-
-Returns a list of known iptables modules for the C<vzctl set iptables> option.
-
-=cut
 
     my @iptables_modules = qw(
 
@@ -723,11 +147,6 @@ Returns a list of known iptables modules for the C<vzctl set iptables> option.
 
 ####################################
 
-=function features
-
-Returns a list of known features for the C<vzctl set features> option.
-
-=cut
 
     my @features = qw( sysfs nfs sit ipip ppp ipgre bridge nfsd );
 
@@ -1188,3 +607,650 @@ Returns a list of known features for the C<vzctl set features> option.
 }  # Ok, they're gone.  You can come out now.  Guys?  Hello?
 
 1;
+
+__END__
+=pod
+
+=for :stopwords Alan Young applyconfig arrayref avnumproc bootorder config cpulimit cpumask
+cpus cpuunits ctid CTID dcachesize devnodes dgramrcvbuf diskinodes
+diskspace hashref hostname ioprio ipadd ipdel ips iptables kmemsize
+lockedpages manpage nameserver noatime numfile numflock numiptent
+numothersock numproc numpty numsiginfo numtcpsock onboot oomguarpages
+ostemplate othersockbuf physpages privvmpages quotatime quotaugidlimit
+regex searchdomain setmode shmpages subcommand subcommands swappages
+tcprcvbuf tcpsndbuf undef userpasswd vmguarpages vzctl
+
+=encoding utf-8
+
+=head1 NAME
+
+OpenVZ::Vzctl - Call OpenVZ vzctl command from your program
+
+=head1 VERSION
+
+  This document describes v0.01 of OpenVZ::Vzctl - released April 17, 2012 as part of OpenVZ.
+
+=head1 SYNOPSIS
+
+  use OpenVZ::Vzctl;
+
+  #XXX: need to add more examples
+
+=head1 DESCRIPTION
+
+This program is a simple (or not so simple in some cases) wrapper around the 'vzctl' program.  It will do some basic verification on
+options and parameters but it will not (currently) do sanity checks on the values.
+
+=head2 NOTE
+
+All of the commands for vzctl are implemented and all of the options for each command is provided for, but some commands and options
+I don't use so I'm not sure how to test them.  Tests are welcome.
+
+If you want to know what commands and options are available read C<vzctl>s man page.  I followed that in creating this module.
+
+=head1 FUNCTIONS
+
+=head2 vzctl
+
+C<vzctl> is used to call C<execute> with vzctl as the specific command.
+
+C<vzctl> expects a hashref with the required keys C<subcommand> and C<ctid> and does B<NOT> check the validity of any remaining
+keys.
+
+A C<flag> key is optional and accepts C<quiet> and C<verbose>.
+
+An example of a valid call would be
+
+  my $result = vzctl({ subcommand => 'set', 'ctid' => 101, ipadd => '1.2.3.4', save => undef });
+
+In this case, C<set> and C<101> would be validated, but C<1.2.3.4> and the value for C<save> would just be passed along to
+C<execute> as is.
+
+The C<undef> value in C<save> is a hint to C<vzctl> that the C<save> parameter should be passed as a switch (i.e., --save instead of
+--save undef).
+
+When a value is an arrayref, e.g., ipadd => [qw( 1.2.3.4 2.3.4.5 )]. C<vzctl> will send the same parameter multiple times.  The
+previous example would become '--ipadd 1.2.3.4 --ipadd 2.3.4.5'.
+
+You're probably better off if you use the functions designed for a specific command unless you know what you're doing.
+
+=head2 subcommand_specs
+
+C<subcommand_specs> expects a list.  The first element will be checked against a list of known subcommands for vzctl.
+
+If the first element is a known subcommand a predefined hashref will be instantiated.  Any following elements will be treated as
+additional specification names to be included.  Duplicates will be silently ignored.  If an element is preceded by a dash (-), that
+element will be removed from the hashref.
+
+If the first element is not a known subcommand a hashref will be created with the specification names provided, including the first
+element.  Using a dash makes no sense in this context, but will not cause any problems.
+
+C<subcommand_specs> will return the hashref described previously that can be used in the C<spec> option of C<Params::Validate>'s
+C<validate_with> function.  E.g., the call
+
+  my $spec = subcommand_specs( 'stop' );
+
+will return a hashref into C<$spec> that looks like
+
+  $spec = {
+    flag  => { regex => qr/^quiet|verbose/, optional => 1 },
+    ctid  => { callback => { 'validate ctid' => \&_validate_ctid } },
+  }
+
+while the call
+
+  my $spec = subcommand_specs( 'ctid' );
+
+would yield
+
+  $spec = { ctid => { callback => { 'validate ctid' => \&_validate_ctid } } };
+
+If a parameter is surrounded with square brackets ( [] ) the parameter is made optional.
+
+=head2 known_commands
+
+Returns a list of known vzctl commands
+
+=head2 known_options
+
+Given a command, returns a list of known options
+
+=head2 capabilities
+
+Returns a list of known capabilities for the C<vzctl set capability> option.
+
+=head2 iptables_modules
+
+Returns a list of known iptables modules for the C<vzctl set iptables> option.
+
+=head2 features
+
+Returns a list of known features for the C<vzctl set features> option.
+
+=head1 VZCTL COMMANDS
+
+=head2 chkpnt
+
+C<chkpnt> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+Can be either a CTID or name. The command C<vzlist -Ho name,ctid value> is used to determine if C<value> is a valid identifier.
+
+=item create_dumpfile (optional)
+
+Expects a scalar that looks like a file but does not check if it's possible to write to the specified file.  L<Regexp::Common>'s
+C<URI> regex is used to determine what looks like a file.
+
+=back
+
+See the C<vzctl> manpage for information on the C<chkpnt> command.
+
+=head2 create
+
+C<create> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item config (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item hostname (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item ipadd (optional)
+
+Expects a scalar or a reference to an array. L<Regexp::Common>'s C<net IPv4> regex is used to determine if the values are valid
+looking ips.
+
+=item ostemplate (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item private (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=item root (optional)
+
+Expects a scalar, but doesn't check validity of value.
+
+=back
+
+See the C<vzctl> manpage for information on the C<create> command.
+
+=head2 destroy
+
+C<destroy> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<destroy> command.
+
+=head2 enter
+
+C<enter> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item exec (optional)
+
+Expects a scalar or reference to an array but doesn't check for the validity of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<enter> command.
+
+=head2 exec
+
+C<exec> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item command (required)
+
+Expects a scalar or a reference to an array but doesn't check for the validity of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<exec> command.
+
+=head2 exec2
+
+C<exec2> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item command (required)
+
+Expects a scalar or a reference to an array but doesn't check for the validity
+of the command.
+
+=back
+
+See the C<vzctl> manpage for information on the C<exec2> command.
+
+=head2 mount
+
+C<mount> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<mount> command.
+
+=head2 quotainit
+
+C<quotainit> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotainit> command.
+
+=head2 quotaoff
+
+C<quotaoff> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotaoff> command.
+
+=head2 quotaon
+
+C<quotaon> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<quotaon> command.
+
+=head2 restart
+
+C<restart> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<restart> command.
+
+=head2 restore
+
+C<restore> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item restore_dumpfile
+
+Checks if the file exists, but does not check for validity of file format.
+
+=back
+
+See the C<vzctl> manpage for information on the C<restore> command.
+
+=head2 runscript
+
+C<runscript> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item script (required)
+
+Expects a scalar or a reference to an array but doesn't check for the validity of the script.
+
+=back
+
+See the C<vzctl> manpage for information on the C<runscript> command.
+
+=head2 set
+
+C<set> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item applyconfig
+
+=item applyconfig_map
+
+=item hostname
+
+=item name
+
+=item netif_add
+
+=item netif_del
+
+=item pci_add
+
+=item pci_del
+
+=item searchdomain
+
+Expects a scalar. No other validation is performed.
+
+=item avnumproc
+
+=item dcachesize
+
+=item dgramrcvbuf
+
+=item diskinodes
+
+=item diskspace
+
+=item kmemsize
+
+=item lockedpages
+
+=item numfile
+
+=item numflock
+
+=item numiptent
+
+=item numothersock
+
+=item numproc
+
+=item numpty
+
+=item numsiginfo
+
+=item numtcpsock
+
+=item oomguarpages
+
+=item othersockbuf
+
+=item physpages
+
+=item privvmpages
+
+=item shmpages
+
+=item swappages
+
+=item tcprcvbuf
+
+=item tcpsndbuf
+
+=item vmguarpages
+
+Expects an integer followed by an optional 'g', 'm', 'k' or 'p', followed optionally by a colon and an integer and an optional 'g',
+'m', 'k' or 'p'.  E.g., 5M or 5M:15M.
+
+=item bootorder
+
+=item cpulimit
+
+=item cpus
+
+=item cpuunits
+
+=item quotatime
+
+=item quotaugidlimit
+
+Expects an integer.
+
+=item capability
+
+Expects one of the following capabilities
+
+    chown dac_override dac_read_search fowner fsetid ipc_lock ipc_owner kill lease linux_immutable mknod net_admin net_bind_service
+    net_broadcast net_raw setgid setpcap setuid setveid sys_admin sys_boot sys_chroot sys_module sys_nice sys_pacct sys_ptrace
+    sys_rawio sys_resource sys_time sys_tty_config ve_admin
+
+joined with either 'on' or 'off' with a colon. E.g., 'chown:on'.
+
+=item cpumask
+
+Expects either a comma separated list of integers or the word 'all'.
+
+=item devices
+
+Expects a device that matches the regex
+
+  /^(?:(?:(?:b|c):\d+:\d+)|all:(?:r?w?))|none$/
+
+No other validation is performed.
+
+XXX Better explanation needed here.
+
+=item devnodes
+
+=item features
+
+Expects one of the following features
+
+  sysfs nfs sit ipip ppp ipgre bridge nfsd
+
+followed by a colon and either 'on' or 'off'.
+
+=item force
+
+=item save
+
+Expects either undef or the empty string.
+
+=item ioprio
+
+Expects a single integer from 0 to 7.
+
+=item ipadd
+
+=item ipdel
+
+Expects either an array reference or a space separated list of ips to be added or deleted. L<Regexp::Common>'s C<net IPv4> regex is
+used to determine if the ips look valid.  No other validation is performed.
+
+C<ipdel> also accepts 'all' to delete all ips.
+
+=item iptables
+
+Expects either an array reference or space separated list of one or more of the following
+
+    ip_conntrack ip_conntrack_ftp ip_conntrack_irc ip_nat_ftp ip_nat_irc iptable_filter iptable_mangle iptable_nat ipt_conntrack
+    ipt_helper ipt_length ipt_limit ipt_LOG ipt_multiport ipt_owner ipt_recent ipt_REDIRECT ipt_REJECT ipt_state ipt_tcpmss
+    ipt_TCPMSS ipt_tos ipt_TOS ipt_ttl xt_mac
+
+=item nameserver
+
+=item disabled
+
+=item noatime
+
+=item onboot
+
+Expects either 'yes' or 'no'.
+
+=item setmode
+
+Expects either 'restart' or 'ignore'.
+
+=item userpasswd
+
+Expects two strings separated by a colon.  No other validation is performed on the value.
+
+=back
+
+See the C<vzctl> manpage for information on the C<set> command.
+
+=head2 start
+
+C<start> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=item force
+
+=item wait
+
+Expects either undef or the empty string.
+
+=back
+
+See the C<vzctl> manpage for information on the C<start> command.
+
+=head2 status
+
+C<status> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<status> command.
+
+=head2 stop
+
+C<stop> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<stop> command.
+
+=head2 umount
+
+C<umount> expects a hash reference with the following keys and values.
+
+=over 4
+
+=item ctid (required)
+
+See C<chkpnt> for details.
+
+=back
+
+See the C<vzctl> manpage for information on the C<umount> command.
+
+=head1 INSTALLATION
+
+See perlmodinstall for information and options on installing Perl modules.
+
+=head1 SEE ALSO
+
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<OpenVZ|OpenVZ>
+
+=back
+
+=head1 AUTHOR
+
+Alan Young <harleypig@gmail.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2012 by Alan Young.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=cut
+

@@ -6,27 +6,6 @@ package OpenVZ::Vzlist;
 #XXX: Need to use 'on_fail' option for validate_with for smoother error
 #     handling.
 
-=head1 SYNOPSIS
-
-  use OpenVZ::Vzlist;
-
-  #XXX: need to add more examples
-
-=head1 DESCRIPTION
-
-This program is a simple (or not so simple in some cases) wrapper around the 'vzlist' program.  It will do some basic verification
-on options and parameters but it will not (currently) do sanity checks on the values.
-
-=head2 NOTE
-
-All of the commands for vzlist are implemented and all of the options for each command is provided for, but some commands and options
-I don't use so I'm not sure how to test them.  Tests are welcome.
-
-If you want to know what commands and options are available read C<vzlist>s man page.  I followed that in creating this module.
-
-=for stopwords vzlist
-
-=cut
 
 use 5.006;
 
@@ -45,21 +24,10 @@ use Sub::Exporter;
 
 use parent 'OpenVZ';
 
-# VERSION
+our $VERSION = '0.01'; # VERSION
 
 our $AUTOLOAD;
 
-=function vzlist
-
-=function known_fields
-
-Returns a list of known fields for the output and sort options.
-
-=function known_options
-
-Given a command, returns a list of known options
-
-=cut
 
 {  # "The secret to creativity is knowing how to hide your sources." -Albert Einstein
 
@@ -210,3 +178,101 @@ Given a command, returns a list of known options
 }  # Coming out from under!
 
 1;
+
+__END__
+=pod
+
+=for :stopwords Alan Young vzlist
+
+=encoding utf-8
+
+=head1 NAME
+
+OpenVZ::Vzlist - Call OpenVZ vzlist command from your program
+
+=head1 VERSION
+
+  This document describes v0.01 of OpenVZ::Vzlist - released April 17, 2012 as part of OpenVZ.
+
+=head1 SYNOPSIS
+
+  use OpenVZ::Vzlist;
+
+  #XXX: need to add more examples
+
+=head1 DESCRIPTION
+
+This program is a simple (or not so simple in some cases) wrapper around the 'vzlist' program.  It will do some basic verification
+on options and parameters but it will not (currently) do sanity checks on the values.
+
+=head2 NOTE
+
+All of the commands for vzlist are implemented and all of the options for each command is provided for, but some commands and options
+I don't use so I'm not sure how to test them.  Tests are welcome.
+
+If you want to know what commands and options are available read C<vzlist>s man page.  I followed that in creating this module.
+
+=head1 FUNCTIONS
+
+=head2 vzlist
+
+=head2 known_fields
+
+Returns a list of known fields for the output and sort options.
+
+=head2 known_options
+
+Given a command, returns a list of known options
+
+=head1 INSTALLATION
+
+See perlmodinstall for information and options on installing Perl modules.
+
+=head1 SEE ALSO
+
+Please see those modules/websites for more information related to this module.
+
+=over 4
+
+=item *
+
+L<OpenVZ|OpenVZ>
+
+=back
+
+=head1 AUTHOR
+
+Alan Young <harleypig@gmail.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2012 by Alan Young.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=head1 DISCLAIMER OF WARRANTY
+
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT
+WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER
+PARTIES PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND,
+EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE
+SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME
+THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE
+TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE THE
+SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
+RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
+FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
+SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+=cut
+
