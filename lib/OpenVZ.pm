@@ -26,9 +26,6 @@ use 5.006;
 use strict;
 use warnings;
 
-# This way, we don't need to remember to use autoclean in our submodules.
-#use namespace::autoclean ();
-#sub import { return namespace::autoclean->import( -cleanee => scalar caller ) }
 use namespace::sweep ();
 sub import { return namespace::sweep->import( -cleanee => scalar caller, -also => qr/^_\w*$/ ) }
 
@@ -143,6 +140,7 @@ passed on the command line.
 
         my @args = $program{ path }{ $arg{ command } };
         push @args, @{ $arg{ params } } if exists $arg{ params };
+        return \@args if exists $ENV{ DEV_EXECUTE };
         return run3( \@args );
 
     } ## end sub execute
